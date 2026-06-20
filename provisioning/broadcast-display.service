@@ -1,0 +1,18 @@
+[Unit]
+Description=Broadcast Info Display server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/opt/broadcast-info-display
+ExecStart=/usr/bin/node dist/server/index.js
+Restart=always
+RestartSec=3
+Environment=PORT=8080
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

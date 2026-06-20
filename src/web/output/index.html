@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1920" />
+  <title>Broadcast Info Display</title>
+  <link rel="stylesheet" href="/output/output.css" />
+</head>
+<body>
+  <div id="connection-indicator" class="indicator disconnected" title="WebSocket"></div>
+  <main id="app">
+    <table id="info-table">
+      <thead>
+        <tr>
+          <th>Frame</th>
+          <th>Fonte</th>
+          <th>Descrição</th>
+          <th>Observação</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="table-body"></tbody>
+    </table>
+  </main>
+  <script src="/output/output.js" type="module"></script>
+</body>
+</html>
