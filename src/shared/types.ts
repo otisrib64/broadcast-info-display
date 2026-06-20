@@ -13,8 +13,18 @@ export const RowSchema = z.object({
 });
 export type Row = z.infer<typeof RowSchema>;
 
+export const ImageConfigSchema = z.object({
+  src: z.string(),       // base64 data URL
+  x: z.number(),         // px from left
+  y: z.number(),         // px from top
+  width: z.number(),     // px
+  visible: z.boolean(),
+});
+export type ImageConfig = z.infer<typeof ImageConfigSchema>;
+
 export const StateSchema = z.object({
   rows: z.array(RowSchema),
+  image: ImageConfigSchema.optional(),
 });
 export type State = z.infer<typeof StateSchema>;
 

@@ -8,31 +8,17 @@ import { parseClientMessage, applyMessage, sendState, broadcast } from "./protoc
 const PORT = Number(process.env.PORT ?? 8080);
 const WEB_DIR = join(process.cwd(), "src", "web");
 
+const ROUTES: Record<string, { file: string; mime: string }> = {
+  "/":        { file: "index.html", mime: "text/html; charset=utf-8" },
+  "/app.css": { file: "app.css",    mime: "text/css" },
+  "/app.js":  { file: "app.js",     mime: "application/javascript" },
+};
+
 function serveStatic(urlPath: string): { body: Buffer; mime: string } | null {
-  const routes: Record<string, string> = {
-    "/": join(WEB_DIR, "output", "index.html"),
-    "/output": join(WEB_DIR, "output", "index.html"),
-    "/output/": join(WEB_DIR, "output", "index.html"),
-    "/output/output.js": join(WEB_DIR, "output", "output.js"),
-    "/output/output.css": join(WEB_DIR, "output", "output.css"),
-    "/control": join(WEB_DIR, "control", "index.html"),
-    "/control/": join(WEB_DIR, "control", "index.html"),
-    "/control/control.js": join(WEB_DIR, "control", "control.js"),
-    "/control/control.css": join(WEB_DIR, "control", "control.css"),
-  };
-
-  const filePath = routes[urlPath];
-  if (!filePath) return null;
-
+  const route = ROUTES[urlPath];
+  if (!route) return null;
   try {
-    const body = readFileSync(filePath);
-    const ext = filePath.split(".").pop() ?? "";
-    const mimes: Record<string, string> = {
-      html: "text/html; charset=utf-8",
-      js: "application/javascript",
-      css: "text/css",
-    };
-    return { body, mime: mimes[ext] ?? "application/octet-stream" };
+    return { body: readFileSync(join(WEB_DIR, route.file)), mime: route.mime };
   } catch {
     return null;
   }
@@ -74,5 +60,5 @@ wss.on("connection", (ws) => {
 });
 
 httpServer.listen(PORT, "0.0.0.0", () => {
-  console.log({ operation: "listening", port: PORT, control: `http://localhost:${PORT}/control`, output: `http://localhost:${PORT}/output` });
+  console.log({ operation: "listening", port: PORT, url: `http://localhost:${PORT}` });
 });

@@ -1,8 +1,20 @@
 {
   "rows": [
-    { "id": "1", "frame": "Frame 1", "source": "Microcâmera 1", "description": "Gol Norte", "note": "", "status": "live" },
-    { "id": "2", "frame": "Frame 2", "source": "Microcâmera 2", "description": "Gol Sul", "note": "", "status": "standby" },
-    { "id": "3", "frame": "Frame 3", "source": "Câmera Externa", "description": "Entrada principal", "note": "via fibra", "status": "standby" },
-    { "id": "4", "frame": "Frame 4", "source": "Retorno EVS", "description": "Replay principal", "note": "", "status": "off" }
+    {
+      "id": "mqmypot9r6oi",
+      "frame": "",
+      "source": "",
+      "description": "",
+      "note": "",
+      "status": "standby"
+    },
+    {
+      "id": "mqmypq1gmdlq",
+      "frame": "",
+      "source": "",
+      "description": "",
+      "note": "",
+      "status": "standby"
+    }
   ]
 }

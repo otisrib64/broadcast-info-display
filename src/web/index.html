@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Broadcast Info Display</title>
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+  <header>
+    <h1>Broadcast Info Display</h1>
+    <div class="header-right">
+      <button id="btn-add">+ Linha</button>
+      <button id="btn-img-toggle">🖼 Imagem</button>
+      <span id="clock"></span>
+      <span id="conn-indicator" class="dot disconnected" title="WebSocket"></span>
+    </div>
+  </header>
+
+  <div id="img-panel" class="img-panel hidden">
+    <label class="img-panel-row">
+      <span>Arquivo</span>
+      <input type="file" id="img-file" accept="image/*" />
+    </label>
+    <label class="img-panel-row">
+      <span>Largura <span id="img-width-val">200</span>px</span>
+      <input type="range" id="img-width" min="20" max="1200" value="200" />
+    </label>
+    <label class="img-panel-row">
+      <span>X <span id="img-x-val">50</span>px</span>
+      <input type="range" id="img-x" min="0" max="1800" value="50" />
+    </label>
+    <label class="img-panel-row">
+      <span>Y <span id="img-y-val">50</span>px</span>
+      <input type="range" id="img-y" min="0" max="1000" value="50" />
+    </label>
+    <label class="img-panel-row">
+      <span>Visível</span>
+      <input type="checkbox" id="img-visible" checked />
+    </label>
+    <button id="btn-img-remove" class="danger">Remover imagem</button>
+  </div>
+
+  <main>
+    <table>
+      <thead>
+        <tr>
+          <th>Frame</th>
+          <th>Fonte</th>
+          <th>Descrição</th>
+          <th>Observação</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </main>
+
+  <img id="overlay-img" class="overlay-img hidden" alt="overlay" draggable="false" />
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>
