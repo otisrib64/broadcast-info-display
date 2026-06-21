@@ -7,6 +7,7 @@
     "build": "tsc",
     "start": "node dist/server/index.js",
     "dev": "tsc --watch & node --watch dist/server/index.js",
+    "launch": "node scripts/launcher.js",
     "test": "node --experimental-vm-modules node_modules/.bin/jest --testPathPattern=src/server"
   },
   "dependencies": {
