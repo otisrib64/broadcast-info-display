@@ -1,6 +1,6 @@
 {
   "name": "broadcast-info-display",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Raspberry Pi broadcast info display — kiosk HDMI via WebSocket",
   "type": "module",
   "scripts": {
