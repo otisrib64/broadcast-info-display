@@ -25,12 +25,12 @@ export function applyMessage(msg: ClientMessage): State {
       const rows = exists
         ? current.rows.map((r) => (r.id === msg.row.id ? msg.row : r))
         : [...current.rows, msg.row];
-      const next = { rows };
+      const next = { ...current, rows };
       saveState(next);
       return next;
     }
     case "removeRow": {
-      const next = { rows: current.rows.filter((r) => r.id !== msg.id) };
+      const next = { ...current, rows: current.rows.filter((r) => r.id !== msg.id) };
       saveState(next);
       return next;
     }
@@ -40,7 +40,7 @@ export function applyMessage(msg: ClientMessage): State {
         const row = byId.get(id);
         return row ? [row] : [];
       });
-      const next = { rows };
+      const next = { ...current, rows };
       saveState(next);
       return next;
     }

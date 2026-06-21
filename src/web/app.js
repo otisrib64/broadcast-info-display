@@ -111,6 +111,41 @@ function renderTable() {
   );
 }
 
+/**
+ * True when the DOM rows match the incoming rows by id and order — meaning we can
+ * patch values in place instead of rebuilding (which would steal focus from the
+ * field a remote operator is editing).
+ * @param {typeof rows} incoming
+ */
+function sameRowStructure(incoming) {
+  const trs = tbody.children;
+  if (trs.length !== incoming.length) return false;
+  for (let i = 0; i < incoming.length; i++) {
+    if (/** @type {HTMLElement} */ (trs[i]).dataset.id !== incoming[i].id) return false;
+  }
+  return true;
+}
+
+/** Update cell values without rebuilding rows; never touches the focused element. */
+function patchTable() {
+  const active = document.activeElement;
+  for (const el of Array.from(tbody.children)) {
+    const tr = /** @type {HTMLElement} */ (el);
+    const row = rows.find((r) => r.id === tr.dataset.id);
+    if (!row) continue;
+    for (const field of TEXT_FIELDS) {
+      const input = /** @type {HTMLInputElement | null} */ (tr.querySelector(`input[data-field="${field}"]`));
+      if (!input || input === active) continue;
+      if (input.value !== row[field]) input.value = row[field];
+    }
+    const sel = /** @type {HTMLSelectElement | null} */ (tr.querySelector('select[data-field="status"]'));
+    if (sel && sel !== active && sel.value !== row.status) {
+      sel.value = row.status;
+      sel.className = row.status;
+    }
+  }
+}
+
 // ── Image overlay render ───────────────────────────────────────────────────────
 
 function renderImage() {
@@ -152,10 +187,12 @@ function connect() {
     try {
       const msg = JSON.parse(ev.data);
       if (msg.type === "state") {
+        const structural = !sameRowStructure(msg.state.rows);
         rows  = msg.state.rows;
         image = msg.state.image;
         memo  = msg.state.memo ?? "";
-        renderTable();
+        if (structural) renderTable();
+        else patchTable();
         renderImage();
         if (document.activeElement !== memoText) memoText.value = memo;
       }

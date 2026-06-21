@@ -30,6 +30,13 @@ systemctl disable --now apt-daily-upgrade.timer 2>/dev/null || true
 apt-get remove -y unattended-upgrades 2>/dev/null || true
 apt-mark hold chromium-browser 2>/dev/null || apt-mark hold chromium 2>/dev/null || true
 
+echo "==> Disabling Chromium translate bar / popups (managed policy)"
+# Covers both the `chromium` and `chromium-browser` package layouts on Pi OS.
+for dir in /etc/chromium/policies/managed /etc/chromium-browser/policies/managed; do
+  mkdir -p "${dir}"
+  cp provisioning/chromium-policy.json "${dir}/broadcast-kiosk.json"
+done
+
 echo "==> Disabling screen blanking and DPMS"
 # For labwc/Wayland: disable idle via wlopm or DPMS config
 mkdir -p /etc/xdg/labwc

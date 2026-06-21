@@ -8,9 +8,11 @@ npm run build
 node dist/server/index.js
 ```
 
-Abrir:
+Abrir (as três rotas servem a **mesma** página de tela única — Pi mostra no HDMI,
+operadores editam pela LAN, tudo sincroniza por WebSocket):
 - Output (tela do Pi):  http://localhost:8080/output
 - Controle (qualquer PC): http://localhost:8080/control
+- Raiz (atalho):         http://localhost:8080/
 
 ## Raspberry Pi (produção)
 
@@ -64,6 +66,50 @@ sudo reboot
 O Pi deve ligar direto no output em fullscreen — sem cursor, sem barra de sistema.
 
 ---
+
+## Atualizar o Pi (git pull seguro)
+
+O serviço roda a partir de `/opt/broadcast-info-display`. Para aplicar uma nova
+versão sem que o `state.json` em runtime atrapalhe o merge:
+
+```bash
+cd /opt/broadcast-info-display
+sudo systemctl stop broadcast-display
+sudo git fetch origin && sudo git reset --hard origin/main
+sudo npm install && sudo npm run build
+sudo systemctl start broadcast-display
+```
+
+`data/state.json` é ignorado pelo git, então o `reset --hard` **não apaga** o estado
+atual da tabela. Recarregue o output (ou `sudo reboot`) para o kiosk pegar a UI nova
+(servida com `Cache-Control: no-store`).
+
+## Troubleshooting
+
+### Barra de tradução (Portuguese | English) no HDMI
+
+Resolvido de duas formas, ambas já no projeto:
+1. `<meta name="google" content="notranslate">` na página — funciona em qualquer browser.
+2. Policy gerenciada do Chromium (`TranslateEnabled: false`) instalada pelo `provision.sh`
+   em `/etc/chromium/policies/managed/broadcast-kiosk.json`.
+
+Se ainda aparecer num Pi já provisionado antes desta correção, aplique a policy à mão:
+
+```bash
+cd /opt/broadcast-info-display
+sudo mkdir -p /etc/chromium/policies/managed /etc/chromium-browser/policies/managed
+sudo cp provisioning/chromium-policy.json /etc/chromium/policies/managed/broadcast-kiosk.json
+sudo cp provisioning/chromium-policy.json /etc/chromium-browser/policies/managed/broadcast-kiosk.json
+sudo reboot
+```
+
+### Edição de outro PC não reflete no Pi
+
+Confirme, nesta ordem:
+- O servidor escuta em `0.0.0.0` (já é o padrão) — `sudo ss -ltnp | grep 8080`.
+- O PC alcança o Pi: abra `http://broadcast-display.local:8080/control` (ou o IP).
+- Os logs mostram os dois clientes conectados: `journalctl -u broadcast-display -f`
+  → procure `ws.connect` com `clients: 2`.
 
 ## Fluxo de sinal
 

@@ -1,3 +1,10 @@
 node_modules/
 dist/
 *.js.map
+*.tsbuildinfo
+
+# Runtime state — written by the app on the Pi; must survive git updates.
+data/state.json
+
+# Local reference material (screenshots etc.), not part of the app.
+referencias/

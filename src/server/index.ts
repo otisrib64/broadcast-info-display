@@ -8,10 +8,16 @@ import { parseClientMessage, applyMessage, sendState, broadcast } from "./protoc
 const PORT = Number(process.env.PORT ?? 8080);
 const WEB_DIR = join(process.cwd(), "src", "web");
 
+const HTML = { file: "index.html", mime: "text/html; charset=utf-8" };
+
+// "/", "/control" and "/output" are the same single-page app: the Pi shows it on
+// HDMI, operators edit it from the LAN, and every client stays in sync over WS.
 const ROUTES: Record<string, { file: string; mime: string }> = {
-  "/":        { file: "index.html", mime: "text/html; charset=utf-8" },
-  "/app.css": { file: "app.css",    mime: "text/css" },
-  "/app.js":  { file: "app.js",     mime: "application/javascript" },
+  "/":        HTML,
+  "/control": HTML,
+  "/output":  HTML,
+  "/app.css": { file: "app.css", mime: "text/css" },
+  "/app.js":  { file: "app.js",  mime: "application/javascript" },
 };
 
 function serveStatic(urlPath: string): { body: Buffer; mime: string } | null {
@@ -35,15 +41,17 @@ const httpServer = createServer((req, res) => {
     res.end("Not found");
     return;
   }
-  res.writeHead(200, { "Content-Type": file.mime });
+  // No caching: after a git pull + restart the kiosk must load the new UI on reboot.
+  res.writeHead(200, { "Content-Type": file.mime, "Cache-Control": "no-store" });
   res.end(file.body);
 });
 
 const wss = new WebSocketServer({ server: httpServer });
 const clients = new Set<WebSocket>();
 
-wss.on("connection", (ws) => {
+wss.on("connection", (ws, req) => {
   clients.add(ws);
+  console.log({ operation: "ws.connect", clients: clients.size, ip: req.socket.remoteAddress });
   sendState(ws, loadState());
 
   ws.on("message", (data) => {
@@ -56,7 +64,10 @@ wss.on("connection", (ws) => {
     broadcast(clients, next);
   });
 
-  ws.on("close", () => clients.delete(ws));
+  ws.on("close", () => {
+    clients.delete(ws);
+    console.log({ operation: "ws.disconnect", clients: clients.size });
+  });
 });
 
 httpServer.listen(PORT, "0.0.0.0", () => {
