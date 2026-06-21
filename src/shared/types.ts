@@ -1,11 +1,12 @@
 import { z } from "zod";
 
-export const StatusSchema = z.enum(["live", "standby", "off"]);
+export const StatusSchema = z.enum(["ok", "standby", "atencao", "off"]);
 export type Status = z.infer<typeof StatusSchema>;
 
 export const RowSchema = z.object({
   id: z.string().min(1),
   frame: z.string(),
+  model: z.string().default(""),
   source: z.string(),
   description: z.string(),
   note: z.string(),
@@ -25,6 +26,7 @@ export type ImageConfig = z.infer<typeof ImageConfigSchema>;
 export const StateSchema = z.object({
   rows: z.array(RowSchema),
   image: ImageConfigSchema.optional(),
+  memo: z.string().optional(),
 });
 export type State = z.infer<typeof StateSchema>;
 

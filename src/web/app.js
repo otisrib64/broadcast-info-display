@@ -3,7 +3,10 @@ const tbody       = /** @type {HTMLTableSectionElement} */ (document.getElementB
 const connDot     = /** @type {HTMLElement} */ (document.getElementById("conn-indicator"));
 const btnAdd      = /** @type {HTMLButtonElement} */ (document.getElementById("btn-add"));
 const clock       = /** @type {HTMLElement} */ (document.getElementById("clock"));
-const btnImgToggle = /** @type {HTMLButtonElement} */ (document.getElementById("btn-img-toggle"));
+const btnImgToggle  = /** @type {HTMLButtonElement} */ (document.getElementById("btn-img-toggle"));
+const btnMemoToggle = /** @type {HTMLButtonElement} */ (document.getElementById("btn-memo-toggle"));
+const memoPanel     = /** @type {HTMLElement} */ (document.getElementById("memo-panel"));
+const memoText      = /** @type {HTMLTextAreaElement} */ (document.getElementById("memo-text"));
 const imgPanel    = /** @type {HTMLElement} */ (document.getElementById("img-panel"));
 const imgFile     = /** @type {HTMLInputElement} */ (document.getElementById("img-file"));
 const imgWidthIn  = /** @type {HTMLInputElement} */ (document.getElementById("img-width"));
@@ -18,15 +21,19 @@ const overlayImg  = /** @type {HTMLImageElement} */ (document.getElementById("ov
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-/** @type {{ id: string, frame: string, source: string, description: string, note: string, status: string }[]} */
+/** @type {{ id: string, frame: string, model: string, source: string, description: string, note: string, status: string }[]} */
 let rows = [];
 /** @type {{ src: string, x: number, y: number, width: number, visible: boolean } | undefined} */
 let image;
+/** @type {string} */
+let memo = "";
 let ws = /** @type {WebSocket | null} */ (null);
 let retryDelay = 1000;
 
-const STATUSES = ["live", "standby", "off"];
-const TEXT_FIELDS = /** @type {const} */ (["frame", "source", "description", "note"]);
+const STATUSES = ["ok", "standby", "atencao", "off"];
+const STATUS_LABEL = { ok: "OK", standby: "STANDBY", atencao: "ATENÇÃO", off: "OFF" };
+const TEXT_FIELDS = /** @type {const} */ (["frame", "model", "source", "description", "note"]);
+const FIELD_DATALIST = { frame: "dl-frame", model: "dl-model", source: "dl-source", note: "dl-note" };
 
 // ── Clock ─────────────────────────────────────────────────────────────────────
 
@@ -52,6 +59,8 @@ function makeInput(field, id, value) {
   input.value = value;
   input.dataset.field = field;
   input.dataset.id = id;
+  const listId = FIELD_DATALIST[field];
+  if (listId) input.setAttribute("list", listId);
   return input;
 }
 
@@ -64,7 +73,7 @@ function makeSelect(id, current) {
   for (const s of STATUSES) {
     const opt = document.createElement("option");
     opt.value = s;
-    opt.textContent = s.toUpperCase();
+    opt.textContent = STATUS_LABEL[s] ?? s.toUpperCase();
     if (s === current) opt.selected = true;
     sel.appendChild(opt);
   }
@@ -74,7 +83,7 @@ function makeSelect(id, current) {
 /** @param {string} id */
 function makeRemoveBtn(id) {
   const btn = document.createElement("button");
-  btn.className = "danger";
+  btn.className = "btn-remove";
   btn.textContent = "✕";
   btn.dataset.action = "remove";
   btn.dataset.id = id;
@@ -126,7 +135,7 @@ function renderImage() {
 
 function sendState() {
   if (ws?.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: "setState", state: { rows, image } }));
+    ws.send(JSON.stringify({ type: "setState", state: { rows, image, memo } }));
   }
 }
 
@@ -134,7 +143,8 @@ function connect() {
   ws = new WebSocket(`ws://${location.host}`);
 
   ws.addEventListener("open", () => {
-    connDot.className = "dot connected";
+    connDot.textContent = "● ONLINE";
+    connDot.className = "conn-badge online";
     retryDelay = 1000;
   });
 
@@ -142,16 +152,19 @@ function connect() {
     try {
       const msg = JSON.parse(ev.data);
       if (msg.type === "state") {
-        rows = msg.state.rows;
+        rows  = msg.state.rows;
         image = msg.state.image;
+        memo  = msg.state.memo ?? "";
         renderTable();
         renderImage();
+        if (document.activeElement !== memoText) memoText.value = memo;
       }
     } catch { /* ignore */ }
   });
 
   ws.addEventListener("close", () => {
-    connDot.className = "dot disconnected";
+    connDot.textContent = "● OFFLINE";
+    connDot.className = "conn-badge offline";
     setTimeout(connect, retryDelay);
     retryDelay = Math.min(retryDelay * 2, 16000);
   });
@@ -185,15 +198,26 @@ tbody.addEventListener("click", (ev) => {
 });
 
 btnAdd.addEventListener("click", () => {
-  rows = [...rows, { id: generateId(), frame: "", source: "", description: "", note: "", status: "standby" }];
+  const nextFrame = `Frame ${rows.length + 1}`;
+  rows = [...rows, { id: generateId(), frame: nextFrame, model: "", source: "", description: "", note: "", status: "standby" }];
   renderTable();
   sendState();
 });
 
-// ── Image panel toggle ────────────────────────────────────────────────────────
+// ── Panel toggles ─────────────────────────────────────────────────────────────
 
 btnImgToggle.addEventListener("click", () => {
   imgPanel.classList.toggle("hidden");
+});
+
+btnMemoToggle.addEventListener("click", () => {
+  memoPanel.classList.toggle("hidden");
+  if (!memoPanel.classList.contains("hidden")) memoText.focus();
+});
+
+memoText.addEventListener("input", () => {
+  memo = memoText.value;
+  sendState();
 });
 
 // ── Image file upload ─────────────────────────────────────────────────────────
