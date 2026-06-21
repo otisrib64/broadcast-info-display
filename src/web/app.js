@@ -7,6 +7,7 @@ const btnImgToggle  = /** @type {HTMLButtonElement} */ (document.getElementById(
 const btnMemoToggle = /** @type {HTMLButtonElement} */ (document.getElementById("btn-memo-toggle"));
 const memoPanel     = /** @type {HTMLElement} */ (document.getElementById("memo-panel"));
 const memoText      = /** @type {HTMLTextAreaElement} */ (document.getElementById("memo-text"));
+const memoBanner    = /** @type {HTMLElement} */ (document.getElementById("memo-banner"));
 const imgPanel    = /** @type {HTMLElement} */ (document.getElementById("img-panel"));
 const imgFile     = /** @type {HTMLInputElement} */ (document.getElementById("img-file"));
 const imgWidthIn  = /** @type {HTMLInputElement} */ (document.getElementById("img-width"));
@@ -166,6 +167,13 @@ function renderImage() {
   imgVisible.checked = image.visible;
 }
 
+// ── Memo banner (sempre visível quando há texto, no Pi e em todos os clientes) ─
+
+function renderMemo() {
+  memoBanner.textContent = memo;
+  memoBanner.classList.toggle("hidden", memo.trim() === "");
+}
+
 // ── WebSocket ─────────────────────────────────────────────────────────────────
 
 function sendState() {
@@ -194,6 +202,7 @@ function connect() {
         if (structural) renderTable();
         else patchTable();
         renderImage();
+        renderMemo();
         if (document.activeElement !== memoText) memoText.value = memo;
       }
     } catch { /* ignore */ }
@@ -254,6 +263,7 @@ btnMemoToggle.addEventListener("click", () => {
 
 memoText.addEventListener("input", () => {
   memo = memoText.value;
+  renderMemo();
   sendState();
 });
 

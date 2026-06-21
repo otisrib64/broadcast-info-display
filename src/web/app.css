@@ -110,6 +110,32 @@ button {
 #memo-text::placeholder { color: var(--text-dim); }
 #memo-text:focus { outline: none; border-color: var(--accent); background: #141828; }
 
+/* ── Memo banner (always-visible note on the HDMI output) ──── */
+
+.memo-banner {
+  margin: 14px 24px 0;
+  padding: 12px 16px;
+  background: rgba(212, 160, 23, 0.10);
+  border: 1px solid var(--standby);
+  border-left: 4px solid var(--standby);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.memo-banner.hidden { display: none; }
+.memo-banner::before {
+  content: "NOTA";
+  display: inline-block;
+  margin-right: 10px;
+  padding: 2px 8px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+  color: var(--standby); background: rgba(212, 160, 23, 0.16);
+  border-radius: 4px; vertical-align: 1px;
+}
+
 /* ── Table section ────────────────────────────────────────── */
 
 .table-section { padding: 20px 24px 0; }
