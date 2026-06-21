@@ -4,6 +4,7 @@
 set -euo pipefail
 
 APP_DIR=/opt/broadcast-info-display
+SERVICE_USER=pi   # must match User= in broadcast-display.service
 PORT=8080
 KIOSK_URL="http://localhost:${PORT}/output"
 
@@ -17,6 +18,12 @@ cp -r . "${APP_DIR}/"
 cd "${APP_DIR}"
 npm ci --omit=dev
 npm run build
+
+# The service runs as ${SERVICE_USER}, but the app dir was created by root above.
+# The server writes data/state.json at runtime, so that dir MUST be writable by it —
+# otherwise every edit throws EACCES and crashes the process.
+echo "==> Granting ${SERVICE_USER} write access to data/"
+chown -R "${SERVICE_USER}:${SERVICE_USER}" "${APP_DIR}/data"
 
 echo "==> Installing systemd service"
 cp provisioning/broadcast-display.service /etc/systemd/system/

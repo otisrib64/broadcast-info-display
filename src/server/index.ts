@@ -60,8 +60,19 @@ wss.on("connection", (ws, req) => {
       console.warn({ operation: "ws.message", msg: "invalid message, ignored" });
       return;
     }
-    const next = applyMessage(msg);
-    broadcast(clients, next);
+    // A failed state write (e.g. data dir not writable) must not crash the whole
+    // appliance and disconnect every client — log it and keep serving.
+    try {
+      const next = applyMessage(msg);
+      broadcast(clients, next);
+    } catch (err) {
+      console.error({
+        operation: "ws.message",
+        type: msg.type,
+        error: err instanceof Error ? err.message : String(err),
+        hint: "state save failed — is the data dir writable by the service user (pi)?",
+      });
+    }
   });
 
   ws.on("close", () => {
