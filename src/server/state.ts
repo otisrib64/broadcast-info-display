@@ -1,5 +1,5 @@
-import { readFileSync, writeFileSync, renameSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync, writeFileSync, renameSync, mkdirSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { StateSchema, type State } from "../shared/types.js";
 
 const STATE_PATH = join(process.cwd(), "data", "state.json");
@@ -30,6 +30,9 @@ export function getState(): State {
 
 export function saveState(state: State): void {
   const validated = StateSchema.parse(state);
+  // The data dir is gitignored and git drops empty dirs, so a reset-based update
+  // can leave it missing — recreate it so writes never fail with ENOENT.
+  mkdirSync(dirname(STATE_PATH), { recursive: true });
   writeFileSync(TMP_PATH, JSON.stringify(validated, null, 2), "utf8");
   renameSync(TMP_PATH, STATE_PATH);
   cache = validated;
