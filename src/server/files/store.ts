@@ -1,7 +1,7 @@
 import {
   mkdirSync, writeFileSync, readFileSync, renameSync, unlinkSync, existsSync,
 } from "node:fs";
-import { join, resolve, extname } from "node:path";
+import { join, resolve, extname, sep } from "node:path";
 import { randomUUID } from "node:crypto";
 import { FileMetaSchema, type FileMeta } from "../../shared/types.js";
 import { z } from "zod";
@@ -53,8 +53,9 @@ function safeExt(originalName: string): string {
 function guardId(id: string): string {
   // Only allow safe id chars — no path separators or dots
   if (!/^[a-zA-Z0-9_-]+$/.test(id)) throw new Error("invalid file id");
-  const abs = resolve(join(FILES_DIR, id));
-  if (!abs.startsWith(resolve(FILES_DIR) + "/") && abs !== resolve(FILES_DIR)) {
+  const base = resolve(FILES_DIR);
+  const abs  = resolve(join(FILES_DIR, id));
+  if (!abs.startsWith(base + sep) && abs !== base) {
     throw new Error("path traversal blocked");
   }
   return abs;
