@@ -14,14 +14,6 @@ const MAX_TOTAL_BYTES = 250 * 1024 * 1024;  // 250 MB
 const MAX_FILE_BYTES  =  75 * 1024 * 1024;  //  75 MB
 const MAX_FILES       = 15;
 
-// Allowed extensions (no executables, no archives)
-const ALLOWED_EXT = new Set([
-  ".pdf", ".txt", ".csv", ".json", ".xml",
-  ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg",
-  ".mp4", ".mov", ".mkv", ".avi",
-  ".mp3", ".wav", ".aac",
-  ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
-]);
 
 mkdirSync(FILES_DIR, { recursive: true });
 mkdirSync(TMP_DIR,   { recursive: true });
@@ -46,13 +38,12 @@ function totalBytes(files: FileMeta[]): number {
 }
 
 function safeExt(originalName: string): string {
-  const ext = extname(originalName).toLowerCase();
-  return ALLOWED_EXT.has(ext) ? ext : "";
+  return extname(originalName).toLowerCase();
 }
 
 function guardId(id: string): string {
-  // Only allow safe id chars — no path separators or dots
-  if (!/^[a-zA-Z0-9_-]+$/.test(id)) throw new Error("invalid file id");
+  // Allow alphanum, dash, underscore, single dot for extension; resolve() + prefix check is the real guard
+  if (!/^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9]+)?$/.test(id)) throw new Error("invalid file id");
   const base = resolve(FILES_DIR);
   const abs  = resolve(join(FILES_DIR, id));
   if (!abs.startsWith(base + sep) && abs !== base) {
@@ -72,7 +63,6 @@ export function canAcceptFile(originalName: string, sizeBytes: number): SaveResu
   if (files.length >= MAX_FILES) return { ok: false, reason: "too_many" };
   if (totalBytes(files) + sizeBytes > MAX_TOTAL_BYTES) return { ok: false, reason: "quota_exceeded" };
   if (sizeBytes > MAX_FILE_BYTES) return { ok: false, reason: "file_too_large" };
-  if (!safeExt(originalName)) return { ok: false, reason: "type_not_allowed" };
   return { ok: true, meta: null as unknown as FileMeta };
 }
 
@@ -88,8 +78,6 @@ export function commitFile(
   if (sizeBytes > MAX_FILE_BYTES)                  return { ok: false, reason: "file_too_large" };
 
   const ext = safeExt(originalName);
-  if (!ext) return { ok: false, reason: "type_not_allowed" };
-
   const id   = randomUUID().replace(/-/g, "");
   const dest = join(FILES_DIR, id + ext);
   renameSync(tmpPath, dest);
