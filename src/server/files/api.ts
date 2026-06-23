@@ -102,7 +102,8 @@ export function handleDownload(res: ServerResponse, id: string): void {
 
   const encoded = encodeURIComponent(meta.originalName).replace(/'/g, "%27");
   res.writeHead(200, {
-    "Content-Type":        meta.contentType,
+    // Force octet-stream so html/svg/js never render in-browser (XSS prevention)
+    "Content-Type":        "application/octet-stream",
     "Content-Disposition": `attachment; filename*=UTF-8''${encoded}`,
     "Content-Length":      String(meta.sizeBytes),
     "Cache-Control":       "no-store",
