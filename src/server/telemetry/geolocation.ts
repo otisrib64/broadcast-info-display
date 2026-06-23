@@ -16,10 +16,15 @@ export async function detectLocation(): Promise<GeoLocation | null> {
     return { city, region: city, lat: Number(lat), lon: Number(lon) };
   }
 
+  // Try ipapi.co first, then ipinfo.io as fallback (both HTTPS, no key)
+  const result = await tryIpApiCo() ?? await tryIpInfo();
+  return result;
+}
+
+async function tryIpApiCo(): Promise<GeoLocation | null> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
-    // ipapi.co: HTTPS gratuito, sem chave, 1000 req/dia
     const res = await fetch("https://ipapi.co/json/", { signal: ctrl.signal });
     if (!res.ok) return null;
     const data = await res.json() as Record<string, unknown>;
@@ -29,6 +34,30 @@ export async function detectLocation(): Promise<GeoLocation | null> {
       region: String(data["region"] ?? ""),
       lat:    Number(data["latitude"] ?? 0),
       lon:    Number(data["longitude"] ?? 0),
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function tryIpInfo(): Promise<GeoLocation | null> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  try {
+    // ipinfo.io: HTTPS gratuito, 50k req/mês, campo loc="lat,lon"
+    const res = await fetch("https://ipinfo.io/json", { signal: ctrl.signal });
+    if (!res.ok) return null;
+    const data = await res.json() as Record<string, unknown>;
+    const loc = String(data["loc"] ?? "");
+    const [latStr, lonStr] = loc.split(",");
+    if (!latStr || !lonStr) return null;
+    return {
+      city:   String(data["city"] ?? ""),
+      region: String(data["region"] ?? ""),
+      lat:    Number(latStr),
+      lon:    Number(lonStr),
     };
   } catch {
     return null;

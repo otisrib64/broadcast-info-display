@@ -2,6 +2,13 @@
 
 // ── Critical strip ─────────────────────────────────────────────────────────────
 
+/** @param {string} cls @returns {HTMLElement} */
+function cardDot(cls) {
+  const d = document.createElement("span");
+  d.className = "card-dot " + cls;
+  return d;
+}
+
 /** @param {HTMLElement} container @param {any} telemetry */
 export function renderCriticalStrip(container, telemetry) {
   const loc = telemetry.location;
@@ -15,7 +22,7 @@ export function renderCriticalStrip(container, telemetry) {
     label: "Localização",
     main:  loc ? loc.city : "—",
     sub:   loc ? loc.region : "sem dados",
-    icon:  "📍",
+    icon:  cardDot("loc"),
   }));
 
   // Weather card
@@ -32,14 +39,14 @@ export function renderCriticalStrip(container, telemetry) {
       label: "Clima",
       main:  `${wx.tempC.toFixed(1)}°C`,
       sub:   wx.condition,
-      icon:  "🌤",
+      icon:  cardDot("wx"),
       extra: rainTag,
     }));
   } else {
-    container.appendChild(makeInfoCard({ label: "Clima", main: "—", sub: "sem dados", icon: "🌤" }));
+    container.appendChild(makeInfoCard({ label: "Clima", main: "—", sub: "sem dados", icon: cardDot("wx") }));
   }
 
-  // Rain forecast card (reuse weather data)
+  // Rain forecast card
   if (wx) {
     const tag = document.createElement("span");
     tag.className = "rain-tag " + (wx.raining ? "rain-now" : wx.rainChancePct > 40 ? "rain-alert" : "");
@@ -48,11 +55,11 @@ export function renderCriticalStrip(container, telemetry) {
       label: "Previsão",
       main:  wx.raining ? "Chuva" : "Sem chuva",
       sub:   `${wx.rainChancePct}% nas prox. horas`,
-      icon:  wx.raining ? "🌧" : "☀️",
+      icon:  cardDot(wx.raining ? "rain" : "sun"),
       extra: tag,
     }));
   } else {
-    container.appendChild(makeInfoCard({ label: "Previsão", main: "—", sub: "sem dados", icon: "🌧" }));
+    container.appendChild(makeInfoCard({ label: "Previsão", main: "—", sub: "sem dados", icon: cardDot("rain") }));
   }
 
   // Internet card
@@ -72,13 +79,13 @@ export function renderCriticalStrip(container, telemetry) {
     label: "Internet",
     main:  net.online ? "Online" : "Offline",
     sub:   uptime || "—",
-    icon:  net.online ? "🌐" : "❌",
+    icon:  cardDot(net.online ? "net-on" : "net-off"),
     extra: led,
   }));
 }
 
 /**
- * @param {{ label: string, main: string, sub: string, icon: string, extra?: HTMLElement }} opts
+ * @param {{ label: string, main: string, sub: string, icon: HTMLElement, extra?: HTMLElement }} opts
  */
 function makeInfoCard({ label, main, sub, icon, extra }) {
   const card = document.createElement("div");
@@ -97,7 +104,8 @@ function makeInfoCard({ label, main, sub, icon, extra }) {
   right.style.display = "flex"; right.style.flexDirection = "column";
   right.style.alignItems = "center"; right.style.gap = "6px";
   const ico = document.createElement("span");
-  ico.className = "info-icon"; ico.textContent = icon;
+  ico.className = "info-icon";
+  ico.replaceChildren(icon);
   right.appendChild(ico);
   if (extra) right.appendChild(extra);
 
