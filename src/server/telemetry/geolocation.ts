@@ -19,17 +19,16 @@ export async function detectLocation(): Promise<GeoLocation | null> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch("http://ip-api.com/json/?fields=city,regionName,lat,lon,status", {
-      signal: ctrl.signal,
-    });
+    // ipapi.co: HTTPS gratuito, sem chave, 1000 req/dia
+    const res = await fetch("https://ipapi.co/json/", { signal: ctrl.signal });
     if (!res.ok) return null;
     const data = await res.json() as Record<string, unknown>;
-    if (data["status"] !== "success") return null;
+    if (data["error"]) return null;
     return {
       city:   String(data["city"] ?? ""),
-      region: String(data["regionName"] ?? ""),
-      lat:    Number(data["lat"] ?? 0),
-      lon:    Number(data["lon"] ?? 0),
+      region: String(data["region"] ?? ""),
+      lat:    Number(data["latitude"] ?? 0),
+      lon:    Number(data["longitude"] ?? 0),
     };
   } catch {
     return null;
