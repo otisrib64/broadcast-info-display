@@ -82,5 +82,66 @@
 .dash-main.warn { color: var(--standby); }
 .dash-text { margin-top: 8px; color: var(--text-muted); font-size: 12px; line-height: 1.35; }
 
+/* Mini Cloud */
+.files-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 14px;
+  align-items: start;
+}
+.storage-card {
+  background: linear-gradient(180deg, rgba(25,30,45,.94), rgba(19,24,37,.92));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 15px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+}
+.storage-big {
+  font-size: 30px; font-weight: 950; letter-spacing: -.04em; margin-bottom: 4px;
+}
+.storage-title {
+  font-size: 11px; font-weight: 950; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;
+}
+.storage-note {
+  margin-top: 12px; padding: 10px 11px; border-radius: var(--radius);
+  border: 1px solid rgba(56,189,248,.32); background: rgba(56,189,248,.055);
+  color: var(--text-muted); font-size: 11px; line-height: 1.45;
+}
+.storage-note strong { color: var(--info); }
+.progress {
+  width: 100%; height: 9px; border-radius: 999px;
+  background: #0d1019; overflow: hidden; border: 1px solid var(--border);
+  margin: 13px 0 9px;
+}
+.progress > span {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transition: width .4s;
+}
+.file-drop {
+  margin-top: 14px; border: 1px dashed var(--border-mid);
+  background: rgba(105,119,255,.055); border-radius: var(--radius);
+  padding: 18px 14px; text-align: center; color: var(--text-muted); font-size: 12px;
+}
+.file-drop.drag-over {
+  border-color: var(--accent); background: rgba(105,119,255,.12);
+}
+.file-list {
+  background: linear-gradient(180deg, rgba(25,30,45,.94), rgba(19,24,37,.92));
+  border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; min-height: 80px;
+}
+.file-row {
+  display: grid;
+  grid-template-columns: 1fr 74px 84px 74px;
+  gap: 8px; align-items: center;
+  padding: 10px 12px; border-bottom: 1px solid var(--border);
+}
+.file-row:last-child { border-bottom: 0; }
+.file-name { font-weight: 850; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.file-meta { color: var(--text-dim); font-size: 10px; margin-top: 2px; }
+.file-size { color: var(--text-muted); font-size: 11px; font-variant-numeric: tabular-nums; text-align: right; }
+
 /* Footer */
 footer { margin-top: 18px; }

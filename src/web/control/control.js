@@ -1,5 +1,5 @@
 // @ts-check
-import { connect, onState, onTelemetry, send, setConnIndicator } from "/shared/ws-client.js";
+import { connect, onState, onTelemetry, onFilesChanged, send, setConnIndicator } from "/shared/ws-client.js";
 import {
   startClock, setBigClockElements, applyClockConfig,
   setHeaderClock, enableClockDrag, setOnClockDragEnd,
@@ -416,6 +416,144 @@ clockScaleSlider.addEventListener("input", () => {
   clockCfg = { ...clockCfg, scale };
   applyClockConfig(clockCfg);
   sendClock();
+});
+
+// ── Mini Cloud ────────────────────────────────────────────────────────────────
+
+const cloudUsed     = /** @type {HTMLElement} */ (document.getElementById("cloud-used"));
+const cloudDetail   = /** @type {HTMLElement} */ (document.getElementById("cloud-detail"));
+const cloudFree     = /** @type {HTMLElement} */ (document.getElementById("cloud-free"));
+const cloudBar      = /** @type {HTMLElement} */ (document.getElementById("cloud-bar"));
+const cloudFileList = /** @type {HTMLElement} */ (document.getElementById("cloud-file-list"));
+const cloudEmptyMsg = /** @type {HTMLElement} */ (document.getElementById("cloud-empty-msg"));
+const cloudFileInput= /** @type {HTMLInputElement} */ (document.getElementById("cloud-file-input"));
+const cloudUpStatus = /** @type {HTMLElement} */ (document.getElementById("cloud-upload-status"));
+const fileDropZone  = /** @type {HTMLElement} */ (document.getElementById("file-drop-zone"));
+
+const MAX_TOTAL = 250 * 1024 * 1024;
+
+function fmtBytes(b) {
+  if (b < 1024) return `${b} B`;
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+  return `${(b / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function fmtDate(ms) {
+  return new Date(ms).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+async function loadCloudFiles() {
+  try {
+    const res = await fetch("/api/files");
+    if (!res.ok) return;
+    const files = /** @type {any[]} */ (await res.json());
+    renderCloudFiles(files);
+  } catch { /* offline */ }
+}
+
+/** @param {any[]} files */
+function renderCloudFiles(files) {
+  const totalBytes = files.reduce((s, f) => s + f.sizeBytes, 0);
+  const pct = Math.min(100, (totalBytes / MAX_TOTAL) * 100);
+
+  cloudUsed.textContent = fmtBytes(totalBytes);
+  cloudDetail.textContent = `de 250 MB · ${files.length} / 15 arquivos`;
+  cloudFree.textContent = `${fmtBytes(MAX_TOTAL - totalBytes)} livres`;
+  cloudBar.style.width = `${pct.toFixed(1)}%`;
+
+  if (files.length === 0) {
+    cloudFileList.replaceChildren(cloudEmptyMsg);
+    cloudEmptyMsg.style.display = "";
+    return;
+  }
+
+  cloudEmptyMsg.style.display = "none";
+  cloudFileList.replaceChildren(
+    ...files.map((f) => {
+      const row = document.createElement("div");
+      row.className = "file-row";
+
+      const nameCol = document.createElement("div");
+      const name = document.createElement("div");
+      name.className = "file-name"; name.textContent = f.originalName;
+      const meta = document.createElement("div");
+      meta.className = "file-meta"; meta.textContent = fmtDate(f.uploadedAtMs);
+      nameCol.appendChild(name); nameCol.appendChild(meta);
+
+      const sizeCol = document.createElement("div");
+      sizeCol.className = "file-size"; sizeCol.textContent = fmtBytes(f.sizeBytes);
+
+      const dlBtn = document.createElement("a");
+      dlBtn.href = `/api/files/${encodeURIComponent(f.id)}`;
+      dlBtn.download = f.originalName;
+      dlBtn.className = "btn-outline btn-small";
+      dlBtn.style.textAlign = "center"; dlBtn.style.display = "block";
+      dlBtn.style.fontSize = "11px"; dlBtn.style.padding = "5px 8px";
+      dlBtn.style.borderRadius = "var(--radius)"; dlBtn.style.border = "1px solid var(--border-mid)";
+      dlBtn.style.color = "var(--text)"; dlBtn.style.textDecoration = "none";
+      dlBtn.textContent = "Baixar";
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "btn-danger btn-small"; delBtn.textContent = "Excluir";
+      delBtn.addEventListener("click", async () => {
+        delBtn.disabled = true;
+        try {
+          const r = await fetch(`/api/files/${encodeURIComponent(f.id)}`, { method: "DELETE" });
+          if (r.ok) loadCloudFiles();
+          else delBtn.disabled = false;
+        } catch { delBtn.disabled = false; }
+      });
+
+      row.appendChild(nameCol); row.appendChild(sizeCol); row.appendChild(dlBtn); row.appendChild(delBtn);
+      return row;
+    })
+  );
+}
+
+async function uploadFiles(files) {
+  cloudUpStatus.textContent = "";
+  for (const file of Array.from(files)) {
+    const f = /** @type {File} */ (file);
+    cloudUpStatus.textContent = `Enviando ${f.name}…`;
+    const fd = new FormData();
+    fd.append("file", f);
+    try {
+      const res = await fetch("/api/files", { method: "POST", body: fd });
+      if (res.status === 413) { cloudUpStatus.textContent = `${f.name}: arquivo muito grande (máx 75 MB)`; continue; }
+      if (res.status === 400) {
+        const j = await res.json();
+        cloudUpStatus.textContent = `${f.name}: ${j.error ?? "erro"}`;
+        continue;
+      }
+      if (!res.ok) { cloudUpStatus.textContent = `${f.name}: erro ${res.status}`; continue; }
+    } catch { cloudUpStatus.textContent = `${f.name}: falha de rede`; continue; }
+  }
+  cloudUpStatus.textContent = "Concluído.";
+  setTimeout(() => { cloudUpStatus.textContent = ""; }, 3000);
+  loadCloudFiles();
+}
+
+cloudFileInput.addEventListener("change", () => {
+  if (cloudFileInput.files?.length) uploadFiles(cloudFileInput.files);
+  cloudFileInput.value = "";
+});
+
+fileDropZone.addEventListener("dragover", (ev) => { ev.preventDefault(); fileDropZone.classList.add("drag-over"); });
+fileDropZone.addEventListener("dragleave", () => fileDropZone.classList.remove("drag-over"));
+fileDropZone.addEventListener("drop", (ev) => {
+  ev.preventDefault();
+  fileDropZone.classList.remove("drag-over");
+  if (ev.dataTransfer?.files.length) uploadFiles(ev.dataTransfer.files);
+});
+
+// Refresh list when server signals filesChanged
+onFilesChanged(() => loadCloudFiles());
+
+// Load on tab open
+document.querySelectorAll(".tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    if (/** @type {HTMLElement} */ (btn).dataset.tab === "nuvem") loadCloudFiles();
+  });
 });
 
 // ── Connect ───────────────────────────────────────────────────────────────────
