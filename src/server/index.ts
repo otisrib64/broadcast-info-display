@@ -5,6 +5,7 @@ import { loadState } from "./state.js";
 import { parseClientMessage, applyMessage, sendState, broadcast } from "./protocol.js";
 import { resolveStatic } from "./static.js";
 import { startTelemetry, sendTelemetryTo } from "./telemetry/index.js";
+import { handleList, handleUpload, handleDownload, handleDelete } from "./files/api.js";
 import type { ServerMessage } from "../shared/types.js";
 
 const PORT = Number(process.env.PORT ?? 8080);
@@ -25,8 +26,34 @@ function serveFile(
 const state = loadState();
 console.log({ operation: "startup", rows: state.rows.length, port: PORT });
 
+function broadcastFilesChanged(): void {
+  const payload = JSON.stringify({ type: "filesChanged" } satisfies ServerMessage);
+  for (const ws of clients) {
+    if (ws.readyState === 1) ws.send(payload);
+  }
+}
+
 const httpServer = createServer((req, res) => {
   const urlPath = req.url?.split("?")[0] ?? "/";
+  const method  = req.method ?? "GET";
+
+  // ── Mini Cloud API ──────────────────────────────────────────────────────────
+  if (urlPath === "/api/files" && method === "GET") {
+    handleList(res);
+    return;
+  }
+  if (urlPath === "/api/files" && method === "POST") {
+    handleUpload(req, res, broadcastFilesChanged).catch((err) => {
+      console.error({ operation: "upload", error: err instanceof Error ? err.message : String(err) });
+    });
+    return;
+  }
+  const fileMatch = urlPath.match(/^\/api\/files\/([^/]+)$/);
+  const fileId    = fileMatch?.[1];
+  if (fileId) {
+    if (method === "GET")    { handleDownload(res, fileId); return; }
+    if (method === "DELETE") { handleDelete(res, fileId, broadcastFilesChanged); return; }
+  }
 
   // Redirect root to /control
   if (urlPath === "/") {
