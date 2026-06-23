@@ -4,6 +4,7 @@ import { WebSocketServer, type WebSocket } from "ws";
 import { loadState } from "./state.js";
 import { parseClientMessage, applyMessage, sendState, broadcast } from "./protocol.js";
 import { resolveStatic } from "./static.js";
+import { startTelemetry, sendTelemetryTo } from "./telemetry/index.js";
 import type { ServerMessage } from "../shared/types.js";
 
 const PORT = Number(process.env.PORT ?? 8080);
@@ -62,10 +63,14 @@ const httpServer = createServer((req, res) => {
 const wss = new WebSocketServer({ server: httpServer });
 export const clients = new Set<WebSocket>();
 
+// Start telemetry loop — intervals run server-side; never touches state.json
+startTelemetry(clients);
+
 wss.on("connection", (ws, req) => {
   clients.add(ws);
   console.log({ operation: "ws.connect", clients: clients.size, ip: req.socket.remoteAddress });
   sendState(ws, loadState());
+  sendTelemetryTo(ws);
 
   ws.on("message", (data) => {
     const msg = parseClientMessage(data.toString());

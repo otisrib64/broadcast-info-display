@@ -102,7 +102,7 @@ export type ClientMessage = z.infer<typeof ClientMessageSchema>;
 
 // Server → client messages
 export const TelemetrySchema = z.object({
-  location: z.object({ city: z.string(), region: z.string() }).nullable(),
+  location: z.object({ city: z.string(), region: z.string(), lat: z.number(), lon: z.number() }).nullable(),
   weather: z.object({
     tempC: z.number(),
     condition: z.string(),
