@@ -10,7 +10,6 @@ import { renderCriticalStrip, renderMemoBanner, renderLegend, STATUS_LABEL } fro
 const tbody           = /** @type {HTMLTableSectionElement} */ (document.getElementById("tbody"));
 const btnAdd          = /** @type {HTMLButtonElement} */       (document.getElementById("btn-add"));
 const connIndicator   = /** @type {HTMLElement} */             (document.getElementById("conn-indicator"));
-const connBadge       = /** @type {HTMLElement} */             (document.getElementById("conn-badge"));
 const clockEl         = /** @type {HTMLElement} */             (document.getElementById("clock"));
 const memoText        = /** @type {HTMLTextAreaElement} */     (document.getElementById("memo-text"));
 const memoBanner      = /** @type {HTMLElement} */             (document.getElementById("memo-banner"));
@@ -68,14 +67,6 @@ setOnClockDragEnd((pos) => {
   clockCfg = { ...clockCfg, x: pos.x, y: pos.y };
   sendClock();
 });
-
-// Sync connBadge state with ws-client indicator
-const observer = new MutationObserver(() => {
-  const isOnline = connIndicator.classList.contains("online") || connIndicator.textContent?.includes("ONLINE");
-  connBadge.textContent = isOnline ? "● ONLINE" : "● OFFLINE";
-  connBadge.className = isOnline ? "conn-badge online" : "conn-badge offline";
-});
-observer.observe(connIndicator, { characterData: true, childList: true, subtree: true });
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
@@ -257,40 +248,6 @@ onTelemetry((telemetry) => {
   criticalStrip.style.display = "";
   renderCriticalStrip(criticalStrip, telemetry);
 
-  // Also update status dashboard cards
-  const loc = telemetry.location;
-  const wx  = telemetry.weather;
-  const net = telemetry.internet;
-
-  const dashLocation = document.getElementById("dash-location");
-  const dashRegion   = document.getElementById("dash-region");
-  if (dashLocation) dashLocation.textContent = loc ? loc.city : "—";
-  if (dashRegion)   dashRegion.textContent   = loc ? loc.region : "sem dados";
-
-  const dashTemp      = document.getElementById("dash-temp");
-  const dashCondition = document.getElementById("dash-condition");
-  if (dashTemp)      dashTemp.textContent      = wx ? `${wx.tempC.toFixed(1)}°C` : "—";
-  if (dashCondition) dashCondition.textContent = wx ? wx.condition : "sem dados";
-
-  const dashRain    = document.getElementById("dash-rain");
-  const dashRainSub = document.getElementById("dash-rain-sub");
-  if (dashRain)    dashRain.textContent    = wx ? (wx.raining ? "Chuva" : "Sem chuva") : "—";
-  if (dashRainSub) dashRainSub.textContent = wx ? `${wx.rainChancePct}% chance` : "sem dados";
-
-  const dashInternet    = document.getElementById("dash-internet");
-  const dashInternetSub = document.getElementById("dash-internet-sub");
-  if (dashInternet)    dashInternet.textContent    = net.online ? "Online" : "Offline";
-  if (dashInternetSub) {
-    if (net.online && net.onlineSinceMs) {
-      const mins = Math.floor((Date.now() - net.onlineSinceMs) / 60000);
-      dashInternetSub.textContent = mins < 60 ? `${mins}min ininterrupto` : `${Math.floor(mins / 60)}h ininterrupto`;
-    } else if (!net.online && net.lastDownAtMs) {
-      const mins = Math.floor((Date.now() - net.lastDownAtMs) / 60000);
-      dashInternetSub.textContent = `Caiu há ${mins}min`;
-    } else {
-      dashInternetSub.textContent = "—";
-    }
-  }
 });
 
 // ── Table events ───────────────────────────────────────────────────────────────

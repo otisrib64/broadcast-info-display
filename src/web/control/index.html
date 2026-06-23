@@ -40,7 +40,6 @@
     <div class="header-right">
       <span id="row-counter-badge" class="row-counter-badge">0 / 20</span>
       <button class="btn-primary" id="btn-add">+ Linha</button>
-      <span id="conn-badge" class="conn-badge offline">● OFFLINE</span>
     </div>
   </header>
 
@@ -57,7 +56,6 @@
     <button class="tab-btn" data-tab="notas">Notas</button>
     <button class="tab-btn" data-tab="nuvem">Mini Cloud</button>
     <button class="tab-btn" data-tab="relogio">Relógio</button>
-    <button class="tab-btn" data-tab="status">Status</button>
   </div>
 
   <!-- ── Tab: Tabela ──────────────────────────────────────────────────────── -->
@@ -195,40 +193,6 @@
             <label for="clock-scale-slider">Tamanho</label>
             <input type="range" id="clock-scale-slider" min="1" max="5" step="0.1" value="1" />
             <span class="clock-settings-value" id="clock-scale-val">100%</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Tab: Status ──────────────────────────────────────────────────────── -->
-  <div id="tab-status" class="tab-panel hidden">
-    <div class="panel">
-      <div class="panel-head">
-        <span class="panel-title">Painel de Status</span>
-        <span class="panel-hint">informações de telemetria em tempo real</span>
-      </div>
-      <div class="panel-body">
-        <div class="dashboard-grid" id="dashboard-grid">
-          <div class="dash-card">
-            <div class="dash-title">Localização</div>
-            <div class="dash-main info" id="dash-location">—</div>
-            <div class="dash-text" id="dash-region">aguardando…</div>
-          </div>
-          <div class="dash-card">
-            <div class="dash-title">Temperatura</div>
-            <div class="dash-main ok" id="dash-temp">—</div>
-            <div class="dash-text" id="dash-condition">aguardando…</div>
-          </div>
-          <div class="dash-card">
-            <div class="dash-title">Previsão de chuva</div>
-            <div class="dash-main warn" id="dash-rain">—</div>
-            <div class="dash-text" id="dash-rain-sub">aguardando…</div>
-          </div>
-          <div class="dash-card">
-            <div class="dash-title">Internet</div>
-            <div class="dash-main ok" id="dash-internet">—</div>
-            <div class="dash-text" id="dash-internet-sub">aguardando…</div>
           </div>
         </div>
       </div>

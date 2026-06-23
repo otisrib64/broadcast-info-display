@@ -19,7 +19,7 @@ export async function detectLocation(): Promise<GeoLocation | null> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch("https://ip-api.com/json/?fields=city,regionName,lat,lon,status", {
+    const res = await fetch("http://ip-api.com/json/?fields=city,regionName,lat,lon,status", {
       signal: ctrl.signal,
     });
     if (!res.ok) return null;
