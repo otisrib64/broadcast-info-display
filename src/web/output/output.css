@@ -1,0 +1,58 @@
+/* Output-specific overrides — base.css handles all shared styles */
+
+/* Kiosk: no scroll, no selection, clean HDMI frame */
+body {
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Footer fixed at bottom */
+footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin-top: 0;
+  padding: 8px 24px;
+  z-index: 30;
+}
+
+/* Ensure table section doesn't overlap footer */
+.table-section {
+  padding-bottom: 48px;
+}
+
+/* Row hover off on output — no interactivity */
+tbody tr:hover { background: initial; }
+
+/* Tighter rows for 20-line density at 1080p */
+tbody td { padding: 5px 7px; }
+
+/* Cell boxes in output mode */
+.cell-box {
+  min-height: 28px;
+  font-size: 12px;
+}
+
+/* Status badge size matches cell height */
+.status-badge {
+  min-height: 28px;
+  font-size: 11px;
+}
+
+/* Big clock: no drag cursor on output */
+.big-clock-time {
+  cursor: default;
+}
+
+/* Accent glow on logo-mark uses output teal */
+.logo-mark {
+  box-shadow: 0 0 22px rgba(34,197,94,.26);
+}
+
+/* conn-badge for output shows static label */
+.conn-badge {
+  border-color: rgba(34,197,94,.62);
+  color: var(--ok);
+  background: rgba(34,197,94,.08);
+}

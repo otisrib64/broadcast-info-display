@@ -1,33 +1,24 @@
 import { createServer } from "node:http";
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { WebSocketServer, type WebSocket } from "ws";
 import { loadState } from "./state.js";
 import { parseClientMessage, applyMessage, sendState, broadcast } from "./protocol.js";
+import { resolveStatic } from "./static.js";
+import type { ServerMessage } from "../shared/types.js";
 
 const PORT = Number(process.env.PORT ?? 8080);
 const WEB_DIR = join(process.cwd(), "src", "web");
 
-const HTML = { file: "index.html", mime: "text/html; charset=utf-8" };
-
-// "/", "/control" and "/output" are the same single-page app: the Pi shows it on
-// HDMI, operators edit it from the LAN, and every client stays in sync over WS.
-const ROUTES: Record<string, { file: string; mime: string }> = {
-  "/":        HTML,
-  "/control": HTML,
-  "/output":  HTML,
-  "/app.css": { file: "app.css", mime: "text/css" },
-  "/app.js":  { file: "app.js",  mime: "application/javascript" },
-};
-
-function serveStatic(urlPath: string): { body: Buffer; mime: string } | null {
-  const route = ROUTES[urlPath];
-  if (!route) return null;
-  try {
-    return { body: readFileSync(join(WEB_DIR, route.file)), mime: route.mime };
-  } catch {
-    return null;
-  }
+function serveFile(
+  res: import("node:http").ServerResponse,
+  webDir: string,
+  path: string,
+): boolean {
+  const file = resolveStatic(webDir, path);
+  if (!file) return false;
+  res.writeHead(200, { "Content-Type": file.mime, "Cache-Control": "no-store" });
+  res.end(file.body);
+  return true;
 }
 
 const state = loadState();
@@ -35,19 +26,41 @@ console.log({ operation: "startup", rows: state.rows.length, port: PORT });
 
 const httpServer = createServer((req, res) => {
   const urlPath = req.url?.split("?")[0] ?? "/";
-  const file = serveStatic(urlPath);
-  if (!file) {
-    res.writeHead(404);
-    res.end("Not found");
+
+  // Redirect root to /control
+  if (urlPath === "/") {
+    res.writeHead(302, { Location: "/control" });
+    res.end();
     return;
   }
-  // No caching: after a git pull + restart the kiosk must load the new UI on reboot.
-  res.writeHead(200, { "Content-Type": file.mime, "Cache-Control": "no-store" });
-  res.end(file.body);
+
+  // Route: /control → control/index.html
+  if (urlPath === "/control") {
+    if (serveFile(res, WEB_DIR, "control/index.html")) return;
+  }
+
+  // Route: /output → output/index.html
+  if (urlPath === "/output") {
+    if (serveFile(res, WEB_DIR, "output/index.html")) return;
+  }
+
+  // Static assets under /shared/, /control/, /output/
+  if (
+    urlPath.startsWith("/shared/") ||
+    urlPath.startsWith("/control/") ||
+    urlPath.startsWith("/output/")
+  ) {
+    // Strip leading slash for resolveStatic
+    const rel = urlPath.slice(1);
+    if (serveFile(res, WEB_DIR, rel)) return;
+  }
+
+  res.writeHead(404);
+  res.end("Not found");
 });
 
 const wss = new WebSocketServer({ server: httpServer });
-const clients = new Set<WebSocket>();
+export const clients = new Set<WebSocket>();
 
 wss.on("connection", (ws, req) => {
   clients.add(ws);
@@ -60,8 +73,6 @@ wss.on("connection", (ws, req) => {
       console.warn({ operation: "ws.message", msg: "invalid message, ignored" });
       return;
     }
-    // A failed state write (e.g. data dir not writable) must not crash the whole
-    // appliance and disconnect every client — log it and keep serving.
     try {
       const next = applyMessage(msg);
       broadcast(clients, next);

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="google" content="notranslate" />
+  <meta http-equiv="content-language" content="pt-BR" />
+  <title>Broadcast Info Display — Controle</title>
+  <link rel="stylesheet" href="/shared/base.css" />
+  <link rel="stylesheet" href="/control/control.css" />
+</head>
+<body class="theme-input">
+<div class="shell">
+
+  <header>
+    <div class="header-left">
+      <div class="logo-mark">BI</div>
+      <div class="header-brand">
+        <h1>Broadcast Info Display</h1>
+        <span class="subtitle">Painel de controle <span class="mode-pill">INPUT</span></span>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <div class="mini-card">
+        <div>
+          <span class="mini-label">Conexão</span>
+          <span class="mini-value" id="conn-indicator">● OFFLINE</span>
+        </div>
+        <span class="status-led"></span>
+      </div>
+      <div class="mini-card">
+        <div>
+          <span class="mini-label">Horário</span>
+          <span class="mini-value" id="clock"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <span id="row-counter-badge" class="row-counter-badge">0 / 20</span>
+      <button class="btn-primary" id="btn-add">+ Linha</button>
+      <span id="conn-badge" class="conn-badge offline">● OFFLINE</span>
+    </div>
+  </header>
+
+  <!-- Info strip -->
+  <div class="critical-strip" id="critical-strip" style="display:none"></div>
+
+  <!-- Memo banner -->
+  <div class="memo-banner hidden" id="memo-banner"></div>
+
+  <!-- Tabs -->
+  <div class="tabbar">
+    <button class="tab-btn active" data-tab="tabela">Tabela</button>
+    <button class="tab-btn" data-tab="imagem">Imagem</button>
+    <button class="tab-btn" data-tab="notas">Notas</button>
+    <button class="tab-btn" data-tab="relogio">Relógio</button>
+    <button class="tab-btn" data-tab="status">Status</button>
+  </div>
+
+  <!-- ── Tab: Tabela ──────────────────────────────────────────────────────── -->
+  <div id="tab-tabela" class="tab-panel">
+    <section class="table-section">
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr id="thead-row">
+              <th class="col-frame">
+                <input class="column-title-input" id="col-frame-input" type="text" value="Frame" data-col="frame" />
+              </th>
+              <th class="col-model">
+                <input class="column-title-input" id="col-model-input" type="text" value="Modelo" data-col="model" />
+              </th>
+              <th class="col-source">
+                <input class="column-title-input" id="col-source-input" type="text" value="Fonte" data-col="source" />
+              </th>
+              <th class="col-desc">
+                <input class="column-title-input" id="col-desc-input" type="text" value="Descrição" data-col="description" />
+              </th>
+              <th class="col-note">
+                <input class="column-title-input" id="col-note-input" type="text" value="Nota" data-col="note" />
+              </th>
+              <th class="col-status">
+                <input class="column-title-input" id="col-status-input" type="text" value="Status" data-col="status" />
+              </th>
+              <th class="col-action"></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </section>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <!-- ── Tab: Imagem ──────────────────────────────────────────────────────── -->
+  <div id="tab-imagem" class="tab-panel hidden">
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">Overlay de Imagem</span>
+        <span class="panel-hint">arraste a imagem na tela para posicionar</span>
+      </div>
+      <div class="panel-body">
+        <div class="img-controls">
+          <input type="file" id="img-file" accept="image/*" />
+          <label>Largura: <input type="range" id="img-width" min="50" max="1800" value="200" /><b id="img-width-val">200</b>px</label>
+          <label>X: <input type="range" id="img-x" min="0" max="1800" value="50" /><b id="img-x-val">50</b></label>
+          <label>Y: <input type="range" id="img-y" min="0" max="1000" value="50" /><b id="img-y-val">50</b></label>
+          <label><input type="checkbox" id="img-visible" checked /> Visível</label>
+          <button class="btn-danger btn-small" id="btn-img-remove">Remover imagem</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Tab: Notas ───────────────────────────────────────────────────────── -->
+  <div id="tab-notas" class="tab-panel hidden">
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">Nota / Memo</span>
+        <span class="panel-hint">aparece como banner em todas as telas</span>
+      </div>
+      <div class="panel-body">
+        <textarea id="memo-text" placeholder="Digite uma nota…"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Tab: Relógio ─────────────────────────────────────────────────────── -->
+  <div id="tab-relogio" class="tab-panel hidden">
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">Relógio Grande</span>
+        <span class="panel-hint">aparece sobre a tabela em ambas as telas</span>
+      </div>
+      <div class="panel-body">
+        <div class="clock-settings-grid">
+          <div class="clock-settings-row">
+            <label for="clock-visible-toggle">Mostrar relógio</label>
+            <div>
+              <input type="checkbox" id="clock-visible-toggle" />
+            </div>
+            <span></span>
+          </div>
+          <div class="clock-settings-row">
+            <label for="clock-scale-slider">Tamanho</label>
+            <input type="range" id="clock-scale-slider" min="1" max="5" step="0.1" value="1" />
+            <span class="clock-settings-value" id="clock-scale-val">100%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Tab: Status ──────────────────────────────────────────────────────── -->
+  <div id="tab-status" class="tab-panel hidden">
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">Painel de Status</span>
+        <span class="panel-hint">informações de telemetria em tempo real</span>
+      </div>
+      <div class="panel-body">
+        <div class="dashboard-grid" id="dashboard-grid">
+          <div class="dash-card">
+            <div class="dash-title">Localização</div>
+            <div class="dash-main info" id="dash-location">—</div>
+            <div class="dash-text" id="dash-region">aguardando…</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-title">Temperatura</div>
+            <div class="dash-main ok" id="dash-temp">—</div>
+            <div class="dash-text" id="dash-condition">aguardando…</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-title">Previsão de chuva</div>
+            <div class="dash-main warn" id="dash-rain">—</div>
+            <div class="dash-text" id="dash-rain-sub">aguardando…</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-title">Internet</div>
+            <div class="dash-main ok" id="dash-internet">—</div>
+            <div class="dash-text" id="dash-internet-sub">aguardando…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay image -->
+  <img id="overlay-img" class="hidden" alt="" />
+
+  <!-- Big clock -->
+  <div class="big-clock" id="big-clock">
+    <div class="big-clock-head" id="big-clock-head">
+      <span>RELÓGIO</span>
+      <span style="opacity:.5;cursor:move;">⠿ arrastar</span>
+    </div>
+    <div class="big-clock-time" id="big-clock-time">00:00:00</div>
+    <div class="big-clock-date" id="big-clock-date"></div>
+  </div>
+
+  <!-- Datalists for autocomplete -->
+  <datalist id="dl-frame">
+    <option value="CAM 1"><option value="CAM 2"><option value="CAM 3">
+    <option value="REPLAY"><option value="LIVE"><option value="VT">
+  </datalist>
+  <datalist id="dl-model">
+    <option value="Sony"><option value="Panasonic"><option value="Blackmagic">
+  </datalist>
+  <datalist id="dl-source">
+    <option value="SDI 1"><option value="SDI 2"><option value="HDMI 1">
+    <option value="FIBER 1"><option value="IP 1">
+  </datalist>
+  <datalist id="dl-note">
+    <option value="Ao vivo"><option value="Gravado"><option value="Backup">
+  </datalist>
+
+  <footer>
+    <span class="footer-note">Broadcast Info Display v0.3.0</span>
+    <span class="footer-note">Made by otisrib64 Technology</span>
+  </footer>
+
+</div>
+<script type="module" src="/control/control.js"></script>
+</body>
+</html>
