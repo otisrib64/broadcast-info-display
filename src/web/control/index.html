@@ -55,6 +55,7 @@
     <button class="tab-btn" data-tab="notas">Notas</button>
     <button class="tab-btn" data-tab="nuvem">Mini Cloud</button>
     <button class="tab-btn" data-tab="relogio">Relógio</button>
+    <button class="tab-btn" data-tab="rede">Rede</button>
   </div>
 
   <!-- ── Tab: Tabela ──────────────────────────────────────────────────────── -->
@@ -219,6 +220,88 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ── Tab: Rede ────────────────────────────────────────────────────────── -->
+  <div id="tab-rede" class="tab-panel hidden">
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">Configuração de Rede</span>
+        <span class="panel-hint">IP · Gateway · DNS da máquina local</span>
+      </div>
+      <div class="panel-body">
+
+        <div class="net-current-bar" id="net-current-bar">
+          <span class="net-current-label">Carregando configuração atual…</span>
+        </div>
+
+        <div class="net-form" id="net-form">
+          <div class="net-row">
+            <label class="net-label">Modo</label>
+            <div class="clock-mode-btns">
+              <button id="net-btn-dhcp"   class="btn-mode active">DHCP automático</button>
+              <button id="net-btn-static" class="btn-mode">IP fixo</button>
+            </div>
+          </div>
+          <div id="net-static-fields">
+            <div class="net-row">
+              <label class="net-label" for="net-ip">Endereço IP</label>
+              <input class="net-input" id="net-ip" type="text" placeholder="192.168.1.100" />
+            </div>
+            <div class="net-row">
+              <label class="net-label" for="net-prefix">Máscara (prefixo)</label>
+              <select class="net-input net-select" id="net-prefix">
+                <option value="8">/8  — 255.0.0.0</option>
+                <option value="16">/16 — 255.255.0.0</option>
+                <option value="24" selected>/24 — 255.255.255.0</option>
+                <option value="25">/25 — 255.255.255.128</option>
+                <option value="26">/26 — 255.255.255.192</option>
+                <option value="28">/28 — 255.255.255.240</option>
+                <option value="30">/30 — 255.255.255.252</option>
+              </select>
+            </div>
+            <div class="net-row">
+              <label class="net-label" for="net-gateway">Gateway</label>
+              <input class="net-input" id="net-gateway" type="text" placeholder="192.168.1.1" />
+            </div>
+            <div class="net-row">
+              <label class="net-label" for="net-dns1">DNS primário</label>
+              <input class="net-input" id="net-dns1" type="text" placeholder="8.8.8.8" />
+            </div>
+            <div class="net-row">
+              <label class="net-label" for="net-dns2">DNS secundário</label>
+              <input class="net-input" id="net-dns2" type="text" placeholder="8.8.4.4 (opcional)" />
+            </div>
+          </div>
+          <div class="net-row net-row-action">
+            <span></span>
+            <button class="btn-primary" id="btn-net-apply">Aplicar alterações</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal de confirmação de rede ────────────────────────────────────── -->
+  <div id="net-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal-box">
+      <div class="modal-title">Confirmar alteração de rede</div>
+      <p class="modal-warning">
+        Se os dados estiverem incorretos, esta máquina pode ficar <strong>inacessível na LAN</strong>.
+        Verifique todos os campos antes de confirmar.
+      </p>
+      <table class="modal-table" id="net-modal-table"></table>
+      <label class="modal-check-label">
+        <input type="checkbox" id="net-modal-ack" />
+        Estou ciente que posso perder o acesso temporariamente
+      </label>
+      <div class="modal-actions">
+        <button class="btn-outline" id="btn-net-cancel">Cancelar</button>
+        <button class="btn-danger" id="btn-net-confirm" disabled>Confirmar</button>
+      </div>
+      <div class="modal-status" id="net-modal-status"></div>
     </div>
   </div>
 

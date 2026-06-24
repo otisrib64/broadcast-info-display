@@ -6,6 +6,7 @@ import { parseClientMessage, applyMessage, sendState, broadcast } from "./protoc
 import { resolveStatic } from "./static.js";
 import { startTelemetry, sendTelemetryTo } from "./telemetry/index.js";
 import { handleList, handleUpload, handleDownload, handleDelete } from "./files/api.js";
+import { handleGetNetwork, handleApplyNetwork } from "./network/api.js";
 import type { ServerMessage } from "../shared/types.js";
 
 const PORT = Number(process.env.PORT ?? 8080);
@@ -36,6 +37,18 @@ function broadcastFilesChanged(): void {
 const httpServer = createServer((req, res) => {
   const urlPath = req.url?.split("?")[0] ?? "/";
   const method  = req.method ?? "GET";
+
+  // ── Network API ────────────────────────────────────────────────────────────
+  if (urlPath === "/api/network" && method === "GET") {
+    handleGetNetwork(res);
+    return;
+  }
+  if (urlPath === "/api/network" && method === "POST") {
+    handleApplyNetwork(req, res).catch((err) => {
+      console.error({ operation: "network.apply", error: err instanceof Error ? err.message : String(err) });
+    });
+    return;
+  }
 
   // ── Mini Cloud API ──────────────────────────────────────────────────────────
   if (urlPath === "/api/files" && method === "GET") {

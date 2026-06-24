@@ -580,6 +580,147 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
   });
 });
 
+// ── Network tab ───────────────────────────────────────────────────────────────
+
+const netCurrentBar   = /** @type {HTMLElement} */       (document.getElementById("net-current-bar"));
+const netBtnDhcp      = /** @type {HTMLButtonElement} */ (document.getElementById("net-btn-dhcp"));
+const netBtnStatic    = /** @type {HTMLButtonElement} */ (document.getElementById("net-btn-static"));
+const netStaticFields = /** @type {HTMLElement} */       (document.getElementById("net-static-fields"));
+const netIp           = /** @type {HTMLInputElement} */  (document.getElementById("net-ip"));
+const netPrefix       = /** @type {HTMLSelectElement} */ (document.getElementById("net-prefix"));
+const netGateway      = /** @type {HTMLInputElement} */  (document.getElementById("net-gateway"));
+const netDns1         = /** @type {HTMLInputElement} */  (document.getElementById("net-dns1"));
+const netDns2         = /** @type {HTMLInputElement} */  (document.getElementById("net-dns2"));
+const btnNetApply     = /** @type {HTMLButtonElement} */ (document.getElementById("btn-net-apply"));
+const netModalBackdrop= /** @type {HTMLElement} */       (document.getElementById("net-modal-backdrop"));
+const netModalTable   = /** @type {HTMLElement} */       (document.getElementById("net-modal-table"));
+const netModalAck     = /** @type {HTMLInputElement} */  (document.getElementById("net-modal-ack"));
+const btnNetCancel    = /** @type {HTMLButtonElement} */ (document.getElementById("btn-net-cancel"));
+const btnNetConfirm   = /** @type {HTMLButtonElement} */ (document.getElementById("btn-net-confirm"));
+const netModalStatus  = /** @type {HTMLElement} */       (document.getElementById("net-modal-status"));
+
+/** @type {{ connection: string, iface: string, mode: "dhcp"|"static", ip: string, prefix: number, gateway: string, dns: string[] } | null} */
+let netCurrent = null;
+let netMode = /** @type {"dhcp"|"static"} */ ("dhcp");
+
+function setNetMode(mode) {
+  netMode = mode;
+  netBtnDhcp.classList.toggle("active", mode === "dhcp");
+  netBtnStatic.classList.toggle("active", mode === "static");
+  netStaticFields.style.display = mode === "static" ? "" : "none";
+}
+
+async function loadNetworkConfig() {
+  netCurrentBar.innerHTML = '<span class="net-current-label">Carregando…</span>';
+  try {
+    const res = await fetch("/api/network");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    netCurrent = await res.json();
+    const c = netCurrent;
+    const dnsStr = c.dns.join(", ") || "—";
+    netCurrentBar.innerHTML =
+      `<span class="net-current-label">Interface ${c.iface}</span>&nbsp;&nbsp;` +
+      `Modo: <b>${c.mode === "static" ? "IP fixo" : "DHCP"}</b>&nbsp;&nbsp;` +
+      `IP: <b>${c.ip || "—"}/${c.prefix}</b>&nbsp;&nbsp;` +
+      `Gateway: <b>${c.gateway || "—"}</b>&nbsp;&nbsp;` +
+      `DNS: <b>${dnsStr}</b>`;
+    // Pre-fill form with current values
+    setNetMode(c.mode);
+    netIp.value      = c.ip;
+    netPrefix.value  = String(c.prefix);
+    netGateway.value = c.gateway;
+    netDns1.value    = c.dns[0] ?? "";
+    netDns2.value    = c.dns[1] ?? "";
+  } catch (e) {
+    netCurrentBar.innerHTML =
+      `<span style="color:var(--off)">Erro ao ler configuração: ${e instanceof Error ? e.message : String(e)}</span>`;
+  }
+}
+
+netBtnDhcp.addEventListener("click",   () => setNetMode("dhcp"));
+netBtnStatic.addEventListener("click", () => setNetMode("static"));
+
+// Load when tab opens
+document.querySelectorAll(".tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    if (/** @type {HTMLElement} */ (btn).dataset.tab === "rede") loadNetworkConfig();
+  });
+});
+
+// Open modal
+btnNetApply.addEventListener("click", () => {
+  const dns = [netDns1.value.trim(), netDns2.value.trim()].filter(Boolean);
+  const rows = netMode === "dhcp"
+    ? [["Modo", "DHCP automático"]]
+    : [
+        ["Modo",      "IP fixo"],
+        ["IP / Máscara", `${netIp.value.trim()}/${netPrefix.value}`],
+        ["Gateway",   netGateway.value.trim()],
+        ["DNS",       dns.join(", ") || "—"],
+      ];
+
+  netModalTable.innerHTML = rows
+    .map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`)
+    .join("");
+
+  netModalAck.checked = false;
+  btnNetConfirm.disabled = true;
+  netModalStatus.textContent = "";
+  netModalBackdrop.classList.remove("hidden");
+});
+
+netModalAck.addEventListener("change", () => {
+  btnNetConfirm.disabled = !netModalAck.checked;
+});
+
+btnNetCancel.addEventListener("click", () => {
+  netModalBackdrop.classList.add("hidden");
+});
+
+btnNetConfirm.addEventListener("click", async () => {
+  btnNetConfirm.disabled = true;
+  btnNetCancel.disabled  = true;
+  netModalStatus.style.color = "var(--text-muted)";
+  netModalStatus.textContent = "Aplicando…";
+
+  const dns = [netDns1.value.trim(), netDns2.value.trim()].filter(Boolean);
+  const body = {
+    connection: netCurrent?.connection ?? "Wired connection 1",
+    mode:       netMode,
+    ip:         netIp.value.trim(),
+    prefix:     Number(netPrefix.value),
+    gateway:    netGateway.value.trim(),
+    dns,
+  };
+
+  try {
+    const res = await fetch("/api/network", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      netModalStatus.style.color = "var(--ok)";
+      netModalStatus.textContent = "Configuração aplicada com sucesso.";
+      setTimeout(() => {
+        netModalBackdrop.classList.add("hidden");
+        loadNetworkConfig();
+      }, 1800);
+    } else {
+      netModalStatus.style.color = "var(--off)";
+      netModalStatus.textContent = `Erro: ${data.error ?? res.status}`;
+      btnNetConfirm.disabled = false;
+      btnNetCancel.disabled  = false;
+    }
+  } catch (e) {
+    netModalStatus.style.color = "var(--off)";
+    netModalStatus.textContent = `Falha de rede: ${e instanceof Error ? e.message : String(e)}`;
+    btnNetConfirm.disabled = false;
+    btnNetCancel.disabled  = false;
+  }
+});
+
 // ── Connect ───────────────────────────────────────────────────────────────────
 
 connect();
