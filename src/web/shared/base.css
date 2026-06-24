@@ -217,24 +217,7 @@ header {
   display: block; margin-top: 4px; font-size: 11px;
   color: var(--text-muted); white-space: nowrap;
 }
-.info-icon {
-  width: 34px; height: 34px; border-radius: 10px;
-  display: grid; place-items: center;
-  background: rgba(105,119,255,.10);
-  border: 1px solid rgba(105,119,255,.28);
-  flex-shrink: 0;
-}
 
-/* CSS-only icon dots — no emoji font required */
-.card-dot {
-  width: 16px; height: 16px; border-radius: 999px; flex-shrink: 0;
-}
-.card-dot.loc  { background: var(--info);       box-shadow: 0 0 10px rgba(56,189,248,.65); }
-.card-dot.wx   { background: var(--atencao);    box-shadow: 0 0 10px rgba(250,204,21,.65); }
-.card-dot.sun  { background: #fbbf24;            box-shadow: 0 0 10px rgba(251,191,36,.65); }
-.card-dot.rain { background: var(--standby);    box-shadow: 0 0 10px rgba(56,189,248,.65); }
-.card-dot.net-on  { background: var(--ok);  box-shadow: 0 0 12px rgba(34,197,94,.80); }
-.card-dot.net-off { background: var(--off); box-shadow: 0 0 12px rgba(239,68,68,.80); }
 
 .rain-tag {
   color: #93e3ff;

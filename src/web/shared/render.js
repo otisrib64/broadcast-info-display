@@ -2,13 +2,6 @@
 
 // ── Critical strip ─────────────────────────────────────────────────────────────
 
-/** @param {string} cls @returns {HTMLElement} */
-function cardDot(cls) {
-  const d = document.createElement("span");
-  d.className = "card-dot " + cls;
-  return d;
-}
-
 /** @param {HTMLElement} container @param {any} telemetry */
 export function renderCriticalStrip(container, telemetry) {
   const loc = telemetry.location;
@@ -22,7 +15,6 @@ export function renderCriticalStrip(container, telemetry) {
     label: "Localização",
     main:  loc ? loc.city : "—",
     sub:   loc ? loc.region : "sem dados",
-    icon:  cardDot("loc"),
   }));
 
   // Weather card
@@ -39,11 +31,10 @@ export function renderCriticalStrip(container, telemetry) {
       label: "Clima",
       main:  `${wx.tempC.toFixed(1)}°C`,
       sub:   wx.condition,
-      icon:  cardDot("wx"),
       extra: rainTag,
     }));
   } else {
-    container.appendChild(makeInfoCard({ label: "Clima", main: "—", sub: "sem dados", icon: cardDot("wx") }));
+    container.appendChild(makeInfoCard({ label: "Clima", main: "—", sub: "sem dados" }));
   }
 
   // Rain forecast card
@@ -55,11 +46,10 @@ export function renderCriticalStrip(container, telemetry) {
       label: "Previsão",
       main:  wx.raining ? "Chuva" : "Sem chuva",
       sub:   `${wx.rainChancePct}% nas prox. horas`,
-      icon:  cardDot(wx.raining ? "rain" : "sun"),
       extra: tag,
     }));
   } else {
-    container.appendChild(makeInfoCard({ label: "Previsão", main: "—", sub: "sem dados", icon: cardDot("rain") }));
+    container.appendChild(makeInfoCard({ label: "Previsão", main: "—", sub: "sem dados" }));
   }
 
   // Internet card
@@ -79,15 +69,14 @@ export function renderCriticalStrip(container, telemetry) {
     label: "Internet",
     main:  net.online ? "Online" : "Offline",
     sub:   uptime || "—",
-    icon:  cardDot(net.online ? "net-on" : "net-off"),
     extra: led,
   }));
 }
 
 /**
- * @param {{ label: string, main: string, sub: string, icon: HTMLElement, extra?: HTMLElement }} opts
+ * @param {{ label: string, main: string, sub: string, extra?: HTMLElement }} opts
  */
-function makeInfoCard({ label, main, sub, icon, extra }) {
+function makeInfoCard({ label, main, sub, extra }) {
   const card = document.createElement("div");
   card.className = "info-card";
 
@@ -100,16 +89,15 @@ function makeInfoCard({ label, main, sub, icon, extra }) {
   s.className = "info-sub"; s.textContent = sub;
   left.appendChild(l); left.appendChild(m); left.appendChild(s);
 
-  const right = document.createElement("div");
-  right.style.display = "flex"; right.style.flexDirection = "column";
-  right.style.alignItems = "center"; right.style.gap = "6px";
-  const ico = document.createElement("span");
-  ico.className = "info-icon";
-  ico.replaceChildren(icon);
-  right.appendChild(ico);
-  if (extra) right.appendChild(extra);
+  card.appendChild(left);
+  if (extra) {
+    const right = document.createElement("div");
+    right.style.display = "flex"; right.style.flexDirection = "column";
+    right.style.alignItems = "center"; right.style.gap = "6px";
+    right.appendChild(extra);
+    card.appendChild(right);
+  }
 
-  card.appendChild(left); card.appendChild(right);
   return card;
 }
 
