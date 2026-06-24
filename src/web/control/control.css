@@ -143,5 +143,28 @@
 .file-meta { color: var(--text-dim); font-size: 10px; margin-top: 2px; }
 .file-size { color: var(--text-muted); font-size: 11px; font-variant-numeric: tabular-nums; text-align: right; }
 
+/* Clock mode toggle */
+.clock-mode-btns { display: flex; gap: 6px; }
+.btn-mode {
+  padding: 6px 14px; border-radius: var(--radius);
+  border: 1px solid var(--border-mid);
+  background: rgba(31,38,57,.52); color: var(--text-muted);
+  font-size: 12px; cursor: pointer; font-family: inherit;
+  transition: background .15s, color .15s;
+}
+.btn-mode.active {
+  background: var(--accent); border-color: var(--accent);
+  color: #fff; font-weight: 850;
+}
+.btn-mode:not(.active):hover { background: rgba(47,56,82,.92); color: var(--text); }
+
+/* Stopwatch */
+.sw-controls { display: grid; gap: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
+.sw-display {
+  font-size: 30px; font-weight: 950; letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums; color: var(--text);
+}
+.sw-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
 /* Footer */
 footer { margin-top: 18px; }

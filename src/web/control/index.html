@@ -182,7 +182,7 @@
       <div class="panel-body">
         <div class="clock-settings-grid">
           <div class="clock-settings-row">
-            <label for="clock-visible-toggle">Mostrar relógio</label>
+            <label for="clock-visible-toggle">Mostrar</label>
             <div>
               <input type="checkbox" id="clock-visible-toggle" />
             </div>
@@ -192,6 +192,30 @@
             <label for="clock-scale-slider">Tamanho</label>
             <input type="range" id="clock-scale-slider" min="1" max="5" step="0.1" value="1" />
             <span class="clock-settings-value" id="clock-scale-val">100%</span>
+          </div>
+          <div class="clock-settings-row">
+            <label>Modo</label>
+            <div class="clock-mode-btns">
+              <button id="btn-mode-clock" class="btn-mode active">Relógio</button>
+              <button id="btn-mode-sw" class="btn-mode">Cronômetro</button>
+            </div>
+            <span></span>
+          </div>
+          <div id="sw-controls" class="sw-controls hidden">
+            <div class="clock-settings-row">
+              <label>Tempo</label>
+              <span class="sw-display" id="sw-display">00:00.0</span>
+              <span></span>
+            </div>
+            <div class="clock-settings-row">
+              <label></label>
+              <div class="sw-btn-row">
+                <button class="btn-primary btn-small" id="btn-sw-start">Iniciar</button>
+                <button class="btn-outline btn-small" id="btn-sw-stop">Parar</button>
+                <button class="btn-danger btn-small" id="btn-sw-reset">Zerar</button>
+              </div>
+              <span></span>
+            </div>
           </div>
         </div>
       </div>

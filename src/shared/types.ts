@@ -33,11 +33,20 @@ export const DEFAULT_COLUMNS: Columns = {
   status: "Status",
 };
 
+export const StopwatchSchema = z.object({
+  running: z.boolean(),
+  startedAtMs: z.number().nullable(),
+  accumulatedMs: z.number(),
+});
+export type Stopwatch = z.infer<typeof StopwatchSchema>;
+
 export const ClockConfigSchema = z.object({
   visible: z.boolean(),
   scale: z.number().min(1).max(5),
   x: z.number(),
   y: z.number(),
+  mode: z.enum(["clock", "stopwatch"]).default("clock"),
+  stopwatch: StopwatchSchema.optional(),
 });
 export type ClockConfig = z.infer<typeof ClockConfigSchema>;
 

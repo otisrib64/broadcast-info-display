@@ -10,6 +10,8 @@ let bigClockTimeEl = null;
 let bigClockDateEl = null;
 /** @type {HTMLElement | null} */
 let bigClockHeadEl = null;
+/** @type {HTMLElement | null} */
+let swDisplayEl = null;
 
 /** @param {HTMLElement} el */
 export function setHeaderClock(el) { headerClockEl = el; }
@@ -21,6 +23,20 @@ export function setBigClockElements(els) {
   bigClockDateEl = els.date;
   bigClockHeadEl = els.head;
 }
+
+/** @param {HTMLElement} el — optional panel display inside control's Relógio tab */
+export function setSwDisplayEl(el) { swDisplayEl = el; }
+
+// ── Stopwatch state ──────────────────────────────────────────────────────────
+
+/** @type {"clock" | "stopwatch"} */
+let clockMode = "clock";
+let swRunning = false;
+/** @type {number | null} */
+let swStartedAtMs = null;
+let swAccumulatedMs = 0;
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function now() { return new Date(); }
 
@@ -40,19 +56,42 @@ function formatHeaderClock(d) {
   return `${date}  ${time}`;
 }
 
+/** @param {number} ms */
+export function formatElapsed(ms) {
+  const totalS = Math.floor(ms / 1000);
+  const tenths = Math.floor((ms % 1000) / 100);
+  const s = totalS % 60;
+  const m = Math.floor(totalS / 60) % 60;
+  const h = Math.floor(totalS / 3600);
+  if (h > 0) return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  return `${pad(m)}:${pad(s)}.${tenths}`;
+}
+
+// ── Tick ──────────────────────────────────────────────────────────────────────
+
 export function tick() {
   const d = now();
   if (headerClockEl) headerClockEl.textContent = formatHeaderClock(d);
-  if (bigClockTimeEl) bigClockTimeEl.textContent = formatTime(d);
-  if (bigClockDateEl) bigClockDateEl.textContent = formatDate(d);
+
+  if (clockMode === "stopwatch") {
+    const elapsed = swAccumulatedMs + (swRunning && swStartedAtMs !== null ? Date.now() - swStartedAtMs : 0);
+    const formatted = formatElapsed(elapsed);
+    if (bigClockTimeEl) bigClockTimeEl.textContent = formatted;
+    if (bigClockDateEl) bigClockDateEl.textContent = "CRONÔMETRO";
+    if (swDisplayEl) swDisplayEl.textContent = formatted;
+  } else {
+    if (bigClockTimeEl) bigClockTimeEl.textContent = formatTime(d);
+    if (bigClockDateEl) bigClockDateEl.textContent = formatDate(d);
+    if (swDisplayEl) swDisplayEl.textContent = "—";
+  }
 }
 
 export function startClock() {
   tick();
-  setInterval(tick, 1000);
+  setInterval(tick, 100);
 }
 
-/** @param {{ visible: boolean, scale: number, x: number, y: number }} cfg */
+/** @param {{ visible: boolean, scale: number, x: number, y: number, mode?: "clock"|"stopwatch", stopwatch?: { running: boolean, startedAtMs: number|null, accumulatedMs: number } }} cfg */
 export function applyClockConfig(cfg) {
   if (!bigClockEl) return;
   bigClockEl.classList.toggle("visible", cfg.visible);
@@ -60,6 +99,15 @@ export function applyClockConfig(cfg) {
   bigClockEl.style.left = cfg.x + "px";
   bigClockEl.style.top  = cfg.y + "px";
   bigClockEl.style.right = "auto";
+
+  clockMode = cfg.mode ?? "clock";
+  if (cfg.stopwatch) {
+    swRunning       = cfg.stopwatch.running;
+    swStartedAtMs   = cfg.stopwatch.startedAtMs;
+    swAccumulatedMs = cfg.stopwatch.accumulatedMs;
+  } else {
+    swRunning = false; swStartedAtMs = null; swAccumulatedMs = 0;
+  }
 }
 
 // ── Drag support (control page header has drag handle; output doesn't) ─────────

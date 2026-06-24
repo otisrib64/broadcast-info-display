@@ -3,6 +3,7 @@ import { connect, onState, onTelemetry, onFilesChanged, send, setConnIndicator }
 import {
   startClock, setBigClockElements, applyClockConfig,
   setHeaderClock, enableClockDrag, setOnClockDragEnd,
+  setSwDisplayEl,
 } from "/shared/clock.js";
 import { renderCriticalStrip, renderMemoBanner, renderLegend, STATUS_LABEL } from "/shared/render.js";
 
@@ -33,6 +34,13 @@ const bigClockHead    = /** @type {HTMLElement} */             (document.getElem
 const clockVisible    = /** @type {HTMLInputElement} */        (document.getElementById("clock-visible-toggle"));
 const clockScaleSlider= /** @type {HTMLInputElement} */        (document.getElementById("clock-scale-slider"));
 const clockScaleVal   = /** @type {HTMLElement} */             (document.getElementById("clock-scale-val"));
+const btnModeClock    = /** @type {HTMLButtonElement} */       (document.getElementById("btn-mode-clock"));
+const btnModeSw       = /** @type {HTMLButtonElement} */       (document.getElementById("btn-mode-sw"));
+const swControls      = /** @type {HTMLElement} */             (document.getElementById("sw-controls"));
+const swDisplay       = /** @type {HTMLElement} */             (document.getElementById("sw-display"));
+const btnSwStart      = /** @type {HTMLButtonElement} */       (document.getElementById("btn-sw-start"));
+const btnSwStop       = /** @type {HTMLButtonElement} */       (document.getElementById("btn-sw-stop"));
+const btnSwReset      = /** @type {HTMLButtonElement} */       (document.getElementById("btn-sw-reset"));
 
 // Column header inputs
 const colInputs = /** @type {NodeListOf<HTMLInputElement>} */ (document.querySelectorAll(".column-title-input"));
@@ -47,8 +55,8 @@ let image;
 let memo = "";
 /** @type {Record<string, string>} */
 let columns = { frame: "Frame", model: "Modelo", source: "Fonte", description: "Descrição", note: "Nota", status: "Status" };
-/** @type {{ visible: boolean, scale: number, x: number, y: number }} */
-let clockCfg = { visible: false, scale: 1, x: 0, y: 92 };
+/** @type {{ visible: boolean, scale: number, x: number, y: number, mode: "clock"|"stopwatch", stopwatch?: { running: boolean, startedAtMs: number|null, accumulatedMs: number } }} */
+let clockCfg = { visible: false, scale: 1, x: 0, y: 92, mode: "clock" };
 
 const STATUSES = ["ok", "standby", "atencao", "off", "manutencao"];
 const TEXT_FIELDS = /** @type {const} */ (["frame", "model", "source", "description", "note"]);
@@ -58,6 +66,7 @@ const FIELD_DATALIST = { frame: "dl-frame", model: "dl-model", source: "dl-sourc
 
 setHeaderClock(clockEl);
 setBigClockElements({ clock: bigClock, time: bigClockTime, date: bigClockDate, head: bigClockHead });
+setSwDisplayEl(swDisplay);
 startClock();
 renderLegend(legendEl);
 setConnIndicator(connIndicator);
@@ -232,6 +241,7 @@ onState((state) => {
     clockVisible.checked = clockCfg.visible;
     clockScaleSlider.value = String(clockCfg.scale);
     clockScaleVal.textContent = `${Math.round(clockCfg.scale * 100)}%`;
+    updateSwControls();
   }
 
   if (structural) renderTable(); else patchTable();
@@ -372,6 +382,63 @@ clockScaleSlider.addEventListener("input", () => {
   clockScaleVal.textContent = `${Math.round(scale * 100)}%`;
   clockCfg = { ...clockCfg, scale };
   applyClockConfig(clockCfg);
+  sendClock();
+});
+
+// ── Stopwatch controls ────────────────────────────────────────────────────────
+
+function defaultSw() {
+  return { running: false, startedAtMs: null, accumulatedMs: 0 };
+}
+
+function updateSwControls() {
+  const isSw = clockCfg.mode === "stopwatch";
+  swControls.classList.toggle("hidden", !isSw);
+  btnModeClock.classList.toggle("active", !isSw);
+  btnModeSw.classList.toggle("active", isSw);
+  const sw = clockCfg.stopwatch ?? defaultSw();
+  btnSwStart.disabled = sw.running;
+  btnSwStop.disabled  = !sw.running;
+  if (!isSw) swDisplay.textContent = "—";
+}
+
+btnModeClock.addEventListener("click", () => {
+  clockCfg = { ...clockCfg, mode: "clock" };
+  applyClockConfig(clockCfg);
+  updateSwControls();
+  sendClock();
+});
+
+btnModeSw.addEventListener("click", () => {
+  clockCfg = { ...clockCfg, mode: "stopwatch", stopwatch: clockCfg.stopwatch ?? defaultSw() };
+  applyClockConfig(clockCfg);
+  updateSwControls();
+  sendClock();
+});
+
+btnSwStart.addEventListener("click", () => {
+  const sw = clockCfg.stopwatch ?? defaultSw();
+  if (sw.running) return;
+  clockCfg = { ...clockCfg, stopwatch: { ...sw, running: true, startedAtMs: Date.now() } };
+  applyClockConfig(clockCfg);
+  updateSwControls();
+  sendClock();
+});
+
+btnSwStop.addEventListener("click", () => {
+  const sw = clockCfg.stopwatch ?? defaultSw();
+  if (!sw.running || sw.startedAtMs === null) return;
+  const accumulatedMs = sw.accumulatedMs + (Date.now() - sw.startedAtMs);
+  clockCfg = { ...clockCfg, stopwatch: { running: false, startedAtMs: null, accumulatedMs } };
+  applyClockConfig(clockCfg);
+  updateSwControls();
+  sendClock();
+});
+
+btnSwReset.addEventListener("click", () => {
+  clockCfg = { ...clockCfg, stopwatch: defaultSw() };
+  applyClockConfig(clockCfg);
+  updateSwControls();
   sendClock();
 });
 
