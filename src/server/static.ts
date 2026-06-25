@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, resolve, sep } from "node:path";
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",

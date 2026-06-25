@@ -100,8 +100,16 @@ const httpServer = createServer((req, res) => {
   res.end("Not found");
 });
 
-const wss = new WebSocketServer({ server: httpServer });
+// Cap WS frame size. The largest legitimate client message is a state update
+// carrying a base64 overlay image (guarded to 3 MB client-side ≈ 4 MB encoded);
+// 5 MB leaves headroom while blocking oversized frames that could OOM the Pi.
+const MAX_WS_PAYLOAD_BYTES = 5 * 1024 * 1024;
+const wss = new WebSocketServer({ server: httpServer, maxPayload: MAX_WS_PAYLOAD_BYTES });
 export const clients = new Set<WebSocket>();
+
+wss.on("error", (err) => {
+  console.error({ operation: "wss.error", error: err instanceof Error ? err.message : String(err) });
+});
 
 // Start telemetry loop — intervals run server-side; never touches state.json
 startTelemetry(clients);
@@ -129,6 +137,10 @@ wss.on("connection", (ws, req) => {
         hint: "state save failed — is the data dir writable by the service user (pi)?",
       });
     }
+  });
+
+  ws.on("error", (err) => {
+    console.error({ operation: "ws.error", error: err instanceof Error ? err.message : String(err) });
   });
 
   ws.on("close", () => {

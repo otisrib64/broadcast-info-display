@@ -56,14 +56,18 @@ export function listFiles(): FileMeta[] {
   return loadIndex();
 }
 
-export type SaveResultType = { ok: true; meta: FileMeta } | { ok: false; reason: string };
+export type RejectReason = "too_many" | "quota_exceeded" | "file_too_large";
+export type SaveResultType = { ok: true; meta: FileMeta } | { ok: false; reason: RejectReason };
 
-export function canAcceptFile(originalName: string, sizeBytes: number): SaveResultType {
+/** Preflight check — nothing is written, so there is no meta to return. */
+export type PreflightResult = { ok: true } | { ok: false; reason: RejectReason };
+
+export function canAcceptFile(originalName: string, sizeBytes: number): PreflightResult {
   const files = loadIndex();
   if (files.length >= MAX_FILES) return { ok: false, reason: "too_many" };
   if (totalBytes(files) + sizeBytes > MAX_TOTAL_BYTES) return { ok: false, reason: "quota_exceeded" };
   if (sizeBytes > MAX_FILE_BYTES) return { ok: false, reason: "file_too_large" };
-  return { ok: true, meta: null as unknown as FileMeta };
+  return { ok: true };
 }
 
 export function commitFile(

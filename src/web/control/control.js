@@ -316,9 +316,16 @@ memoText.addEventListener("input", () => {
 
 // ── Image events ───────────────────────────────────────────────────────────────
 
+const MAX_OVERLAY_BYTES = 3 * 1024 * 1024; // keeps the base64 WS frame + state.json small enough for the Pi
+
 imgFile.addEventListener("change", () => {
   const file = imgFile.files?.[0];
   if (!file) return;
+  if (file.size > MAX_OVERLAY_BYTES) {
+    alert(`Imagem muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Limite: 3 MB.`);
+    imgFile.value = "";
+    return;
+  }
   const reader = new FileReader();
   reader.addEventListener("load", () => {
     const src = /** @type {string} */ (reader.result);
@@ -618,12 +625,7 @@ async function loadNetworkConfig() {
     netCurrent = await res.json();
     const c = netCurrent;
     const dnsStr = c.dns.join(", ") || "—";
-    netCurrentBar.innerHTML =
-      `<span class="net-current-label">Interface ${c.iface}</span>&nbsp;&nbsp;` +
-      `Modo: <b>${c.mode === "static" ? "IP fixo" : "DHCP"}</b>&nbsp;&nbsp;` +
-      `IP: <b>${c.ip || "—"}/${c.prefix}</b>&nbsp;&nbsp;` +
-      `Gateway: <b>${c.gateway || "—"}</b>&nbsp;&nbsp;` +
-      `DNS: <b>${dnsStr}</b>`;
+    renderNetCurrentBar(c, dnsStr);
     // Pre-fill form with current values
     setNetMode(c.mode);
     netIp.value      = c.ip;
@@ -632,9 +634,37 @@ async function loadNetworkConfig() {
     netDns1.value    = c.dns[0] ?? "";
     netDns2.value    = c.dns[1] ?? "";
   } catch (e) {
-    netCurrentBar.innerHTML =
-      `<span style="color:var(--off)">Erro ao ler configuração: ${e instanceof Error ? e.message : String(e)}</span>`;
+    const errSpan = document.createElement("span");
+    errSpan.style.color = "var(--off)";
+    errSpan.textContent = `Erro ao ler configuração: ${e instanceof Error ? e.message : String(e)}`;
+    netCurrentBar.replaceChildren(errSpan);
   }
+}
+
+/**
+ * Render the "current network config" bar from API data using DOM nodes
+ * (never innerHTML) so values like iface/ip/gateway can't inject markup.
+ * @param {{ iface: string, mode: "dhcp"|"static", ip: string, prefix: number, gateway: string }} c
+ * @param {string} dnsStr
+ */
+function renderNetCurrentBar(c, dnsStr) {
+  const label = document.createElement("span");
+  label.className = "net-current-label";
+  label.textContent = `Interface ${c.iface}`;
+  netCurrentBar.replaceChildren(label, "\u00a0\u00a0");
+
+  /** @param {string} key @param {string} value @param {boolean} [trailingGap] */
+  const segment = (key, value, trailingGap = true) => {
+    const strong = document.createElement("b");
+    strong.textContent = value;
+    netCurrentBar.append(`${key}: `, strong);
+    if (trailingGap) netCurrentBar.append("\u00a0\u00a0");
+  };
+
+  segment("Modo", c.mode === "static" ? "IP fixo" : "DHCP");
+  segment("IP", `${c.ip || "—"}/${c.prefix}`);
+  segment("Gateway", c.gateway || "—");
+  segment("DNS", dnsStr, false);
 }
 
 netBtnDhcp.addEventListener("click",   () => setNetMode("dhcp"));
@@ -659,9 +689,15 @@ btnNetApply.addEventListener("click", () => {
         ["DNS",       dns.join(", ") || "—"],
       ];
 
-  netModalTable.innerHTML = rows
-    .map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`)
-    .join("");
+  netModalTable.replaceChildren(...rows.map(([key, value]) => {
+    const tr = document.createElement("tr");
+    const tdKey = document.createElement("td");
+    tdKey.textContent = key;
+    const tdValue = document.createElement("td");
+    tdValue.textContent = value;
+    tr.append(tdKey, tdValue);
+    return tr;
+  }));
 
   netModalAck.checked = false;
   btnNetConfirm.disabled = true;
