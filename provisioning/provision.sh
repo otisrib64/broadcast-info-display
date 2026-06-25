@@ -16,8 +16,11 @@ echo "==> Copying app to ${APP_DIR}"
 mkdir -p "${APP_DIR}/data"
 cp -r . "${APP_DIR}/"
 cd "${APP_DIR}"
-npm ci --omit=dev
+# Build needs TypeScript (a devDependency), so install everything first,
+# compile, then prune dev deps to keep the Pi's footprint small.
+npm ci
 npm run build
+npm prune --omit=dev
 
 # The service runs as ${SERVICE_USER}, but the app dir was created by root above.
 # The server writes data/state.json at runtime, so that dir MUST be writable by it —
