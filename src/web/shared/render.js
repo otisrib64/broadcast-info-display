@@ -19,19 +19,10 @@ export function renderCriticalStrip(container, telemetry) {
 
   // Weather card
   if (wx) {
-    const rainTag = document.createElement("span");
-    rainTag.className = "rain-tag " + (wx.raining ? "rain-now" : wx.rainChancePct > 40 ? "rain-alert" : "");
-    rainTag.textContent = wx.raining
-      ? "Chuva agora"
-      : wx.rainChancePct > 0
-        ? `${wx.rainChancePct}% chance`
-        : "Sem chuva";
-
     container.appendChild(makeInfoCard({
       label: "Clima",
       main:  `${wx.tempC.toFixed(1)}°C`,
       sub:   wx.condition,
-      extra: rainTag,
     }));
   } else {
     container.appendChild(makeInfoCard({ label: "Clima", main: "—", sub: "sem dados" }));
@@ -39,14 +30,10 @@ export function renderCriticalStrip(container, telemetry) {
 
   // Rain forecast card
   if (wx) {
-    const tag = document.createElement("span");
-    tag.className = "rain-tag " + (wx.raining ? "rain-now" : wx.rainChancePct > 40 ? "rain-alert" : "");
-    tag.textContent = wx.raining ? "Chovendo" : "Previsão OK";
     container.appendChild(makeInfoCard({
       label: "Previsão",
       main:  wx.raining ? "Chuva" : "Sem chuva",
       sub:   `${wx.rainChancePct}% nas prox. horas`,
-      extra: tag,
     }));
   } else {
     container.appendChild(makeInfoCard({ label: "Previsão", main: "—", sub: "sem dados" }));
