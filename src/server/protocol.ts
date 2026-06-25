@@ -44,6 +44,16 @@ export function applyMessage(msg: ClientMessage): State {
       saveState(next);
       return next;
     }
+    case "setColumns": {
+      const next = { ...current, columns: msg.columns };
+      saveState(next);
+      return next;
+    }
+    case "setClock": {
+      const next = { ...current, clock: msg.clock };
+      saveState(next);
+      return next;
+    }
   }
 }
 

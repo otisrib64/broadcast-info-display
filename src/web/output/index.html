@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="google" content="notranslate" />
+  <meta http-equiv="content-language" content="pt-BR" />
+  <title>Broadcast Info Display — Output</title>
+  <link rel="stylesheet" href="/shared/base.css" />
+  <link rel="stylesheet" href="/output/output.css" />
+</head>
+<body class="theme-output">
+<div class="shell">
+
+  <header>
+    <div class="header-left">
+      <div class="logo-mark">BI</div>
+      <div class="header-brand">
+        <h1>Broadcast Info Display</h1>
+        <span class="subtitle">Saída HDMI <span class="mode-pill">OUTPUT</span></span>
+      </div>
+    </div>
+
+    <div class="header-center" id="header-mini-cards">
+      <!-- mini cards: conn + clock — preenchidos pelo output.js -->
+      <div class="mini-card">
+        <span class="mini-label">Conexão</span>
+        <span class="conn-badge offline" id="conn-indicator">● OFFLINE</span>
+      </div>
+      <div class="mini-card">
+        <div>
+          <span class="mini-label">Horário</span>
+          <span class="mini-value" id="clock"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <span class="conn-badge" id="conn-badge">OUTPUT HDMI</span>
+    </div>
+  </header>
+
+  <!-- Info strip: localização / clima / previsão / internet -->
+  <div class="critical-strip" id="critical-strip" style="display:none"></div>
+
+  <!-- Memo banner -->
+  <div class="memo-banner hidden" id="memo-banner"></div>
+
+  <!-- Table -->
+  <section class="table-section">
+    <div class="section-bar">
+      <span class="section-label" id="row-counter">0 linhas</span>
+      <span class="section-hint">leitura em tempo real</span>
+    </div>
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr id="thead-row">
+            <th class="col-frame">Frame</th>
+            <th class="col-model">Modelo</th>
+            <th class="col-source">Fonte</th>
+            <th class="col-desc">Descrição</th>
+            <th class="col-note">Nota</th>
+            <th class="col-status">Status</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Legend -->
+  <div class="legend" id="legend"></div>
+
+  <!-- Big clock (read-only, no drag handle) -->
+  <div class="big-clock" id="big-clock">
+    <div class="big-clock-time" id="big-clock-time">00:00:00</div>
+    <div class="big-clock-date" id="big-clock-date"></div>
+  </div>
+
+  <!-- Overlay image -->
+  <img id="overlay-img" class="hidden" alt="" />
+
+  <footer>
+    <span class="footer-note">Broadcast Info Display v0.3.0</span>
+    <span class="footer-note">Made by otisrib64 Technology</span>
+  </footer>
+
+</div>
+<script type="module" src="/output/output.js"></script>
+</body>
+</html>
