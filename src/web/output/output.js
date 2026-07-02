@@ -118,6 +118,8 @@ function renderImage(image) {
 onState((state) => {
   const structural = !sameRowStructure(state.rows);
   rows = state.rows;
+  // Densidade automática: o CSS dimensiona linha/fonte a partir de --rows
+  document.documentElement.style.setProperty("--rows", String(Math.max(rows.length, 1)));
   if (state.columns) columns = state.columns;
   if (state.clock) applyClockConfig(state.clock);
 

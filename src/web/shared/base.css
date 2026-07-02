@@ -1,3 +1,25 @@
+/* ── Self-hosted fonts (Pi pode estar offline — nunca usar CDN) ──────────────── */
+@font-face {
+  font-family: "Barlow Condensed";
+  font-style: normal; font-weight: 600; font-display: swap;
+  src: url("/shared/fonts/barlow-condensed-latin-600-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Barlow Condensed";
+  font-style: normal; font-weight: 700; font-display: swap;
+  src: url("/shared/fonts/barlow-condensed-latin-700-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal; font-weight: 500; font-display: swap;
+  src: url("/shared/fonts/ibm-plex-mono-latin-500-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal; font-weight: 600; font-display: swap;
+  src: url("/shared/fonts/ibm-plex-mono-latin-600-normal.woff2") format("woff2");
+}
+
 /* ── Design tokens ───────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -24,7 +46,9 @@
   --radius: 9px;
   --shadow: 0 18px 42px rgba(0,0,0,.28);
   --font-main: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+  /* Rótulos, badges e cabeçalhos — condensed caps, DNA de placar/router panel */
+  --font-display: "Barlow Condensed", "Segoe UI", ui-sans-serif, sans-serif;
 }
 
 /* ── Theme: input page (blue/indigo) ─────────────────────────────────────────── */
@@ -87,6 +111,8 @@ header {
   padding: 12px 24px;
   background: linear-gradient(180deg, rgba(18,22,34,.98), rgba(14,17,27,.94));
   border-bottom: 1px solid var(--border-mid);
+  /* Linha tally do tema: índigo = INPUT, teal = OUTPUT — identifica a tela num relance */
+  border-top: 3px solid var(--accent);
   box-shadow: 0 10px 30px rgba(0,0,0,.18);
   position: sticky;
   top: 0;
@@ -107,19 +133,24 @@ header {
   border: 1px solid rgba(255,255,255,.10);
 }
 
-.header-brand h1 { font-size: 15px; line-height: 1.15; color: var(--text); }
+.header-brand h1 {
+  font-family: var(--font-display);
+  font-size: 20px; font-weight: 700; letter-spacing: .02em;
+  line-height: 1.05; color: var(--text); text-transform: uppercase;
+}
 .header-brand .subtitle { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
 
 .mode-pill {
   margin-left: 8px;
-  padding: 3px 8px;
+  padding: 3px 9px;
   border-radius: 999px;
   border: 1px solid var(--mode-border, rgba(105,119,255,.5));
   background: var(--mode-bg, rgba(105,119,255,.08));
   color: var(--mode-text, #b9c0ff);
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: .08em;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .12em;
   text-transform: uppercase;
 }
 
@@ -148,11 +179,15 @@ header {
 }
 
 .mini-label {
-  font-size: 9px; font-weight: 900; letter-spacing: .14em;
+  font-family: var(--font-display);
+  font-size: 12px; font-weight: 600; letter-spacing: .14em;
   text-transform: uppercase; color: var(--text-dim);
   display: block; margin-bottom: 2px;
 }
-.mini-value { font-size: 12px; color: var(--text); font-weight: 800; white-space: nowrap; }
+.mini-value {
+  font-size: 13px; color: var(--text); font-weight: 600; white-space: nowrap;
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+}
 .mini-sub { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
 .status-led {
   width: 8px; height: 8px; border-radius: 50%; background: var(--ok);
@@ -164,8 +199,9 @@ header {
 #clock {
   font-size: 12px;
   color: var(--text-muted);
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  letter-spacing: .03em;
+  letter-spacing: .01em;
   min-width: 184px;
   text-align: right;
 }
@@ -206,12 +242,15 @@ header {
 
 .info-label {
   display: block;
-  font-size: 9px; font-weight: 950; letter-spacing: .14em;
+  font-family: var(--font-display);
+  font-size: 12px; font-weight: 600; letter-spacing: .16em;
   text-transform: uppercase; color: var(--text-dim); margin-bottom: 4px;
 }
 .info-main {
-  display: block; font-size: 16px; font-weight: 950;
-  color: var(--text); line-height: 1.05; white-space: nowrap;
+  display: block;
+  font-family: var(--font-display);
+  font-size: 24px; font-weight: 700; letter-spacing: .01em;
+  color: var(--text); line-height: 1; white-space: nowrap;
 }
 .info-sub {
   display: block; margin-top: 4px; font-size: 11px;
@@ -243,8 +282,9 @@ header {
 }
 .memo-banner::before {
   content: "NOTA";
-  display: inline-block; margin-right: 10px; padding: 2px 8px;
-  font-size: 10px; font-weight: 950; letter-spacing: .14em;
+  display: inline-block; margin-right: 10px; padding: 2px 9px;
+  font-family: var(--font-display);
+  font-size: 12px; font-weight: 700; letter-spacing: .16em;
   color: var(--atencao); background: rgba(250,204,21,.14); border-radius: 4px; vertical-align: 1px;
 }
 .memo-banner.hidden { display: none; }
@@ -255,7 +295,11 @@ header {
 .section-bar {
   display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px;
 }
-.section-label { font-size: 11px; font-weight: 950; letter-spacing: .14em; color: var(--text-muted); text-transform: uppercase; }
+.section-label {
+  font-family: var(--font-display);
+  font-size: 14px; font-weight: 600; letter-spacing: .14em;
+  color: var(--text-muted); text-transform: uppercase;
+}
 .section-hint  { font-size: 11px; color: var(--text-dim); }
 
 .table-card {
@@ -268,7 +312,8 @@ header {
 
 table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 thead th {
-  font-size: 10px; font-weight: 950; text-transform: uppercase;
+  font-family: var(--font-display);
+  font-size: 13px; font-weight: 600; text-transform: uppercase;
   letter-spacing: .12em; color: var(--text-dim);
   padding: 8px 8px; border-bottom: 2px solid var(--border-mid);
   text-align: left; background: rgba(8,10,16,.86);
@@ -287,18 +332,22 @@ tbody td { padding: 7px 7px; vertical-align: middle; }
 .col-status { width: 154px; }
 .col-action { width: 42px; }
 
-/* Editable column header input */
-.column-title-input {
-  width: 100%;
+/* Editable column header input.
+   Selector precisa vencer o input[type="text"] genérico abaixo — sem o thead
+   na frente, o estilo de célula ganha e o cabeçalho vira "caixa de dado". */
+thead input.column-title-input {
+  width: 100%; min-height: 0;
   background: transparent;
   border: 1px solid transparent;
   color: var(--text-dim);
-  font: inherit; font-size: 10px; font-weight: 950;
+  font-family: var(--font-display);
+  font-size: 13px; font-weight: 600;
   text-transform: uppercase; letter-spacing: .12em;
   padding: 4px 5px; border-radius: 5px;
+  box-shadow: none;
 }
-.column-title-input:hover { border-color: var(--border-mid); background: rgba(255,255,255,.025); color: var(--text-muted); }
-.column-title-input:focus { outline: none; border-color: var(--accent); background: var(--input-bg); color: var(--text); }
+thead input.column-title-input:hover { border-color: var(--border-mid); background: rgba(255,255,255,.025); color: var(--text-muted); }
+thead input.column-title-input:focus { outline: none; border-color: var(--accent); background: var(--input-bg); color: var(--text); }
 
 /* Cell inputs */
 input[type="text"] {
@@ -347,7 +396,8 @@ select option { background: #10131d; font-weight: 800; }
   display: flex; align-items: center; justify-content: center;
   padding: 6px 8px; border-radius: var(--radius);
   border: 1px solid currentColor;
-  font-size: 12px; font-weight: 950; letter-spacing: .06em;
+  font-family: var(--font-display);
+  font-size: 15px; font-weight: 700; letter-spacing: .1em;
   text-transform: uppercase; font-variant-numeric: tabular-nums;
 }
 .status-badge.ok         { color: var(--ok);          background: rgba(34,197,94,.09); }
@@ -356,17 +406,17 @@ select option { background: #10131d; font-weight: 800; }
 .status-badge.off        { color: var(--off);         background: rgba(239,68,68,.10); }
 .status-badge.manutencao { color: var(--maintenance); background: rgba(168,85,247,.11); }
 
-/* Remove button */
+/* Remove button — quieto até o hover; 20 X vermelhos gritando viram ruído */
 .btn-remove {
   width: 30px; height: 30px; padding: 0;
   display: grid; place-items: center;
-  border: 1px solid rgba(239,68,68,.72);
-  background: transparent; color: #ff6969; font-size: 15px;
+  border: 1px solid transparent;
+  background: transparent; color: var(--text-dim); font-size: 15px;
   border-radius: var(--radius); cursor: pointer;
   font-family: inherit;
-  transition: .14s background, .14s color;
+  transition: .14s background, .14s color, .14s border-color;
 }
-.btn-remove:hover { background: rgba(239,68,68,.20); color: #fff; }
+.btn-remove:hover { border-color: rgba(239,68,68,.72); background: rgba(239,68,68,.20); color: #fff; }
 
 /* ── Buttons ─────────────────────────────────────────────────────────────────── */
 button {
@@ -424,9 +474,10 @@ button:active { transform: translateY(1px); }
 }
 
 .big-clock-time {
-  font-size: calc(64px * var(--clock-scale));
-  font-weight: 950; line-height: .9;
-  font-variant-numeric: tabular-nums; letter-spacing: -.06em;
+  font-family: var(--font-mono);
+  font-size: calc(60px * var(--clock-scale));
+  font-weight: 600; line-height: .9;
+  font-variant-numeric: tabular-nums; letter-spacing: -.04em;
 }
 
 .big-clock-date {
@@ -484,7 +535,11 @@ textarea:focus { outline: none; border-color: var(--accent); }
   padding: 13px 15px; border-bottom: 1px solid var(--border);
   background: rgba(255,255,255,.018);
 }
-.panel-title { font-size: 11px; font-weight: 950; letter-spacing: .14em; color: var(--text-muted); text-transform: uppercase; }
+.panel-title {
+  font-family: var(--font-display);
+  font-size: 14px; font-weight: 600; letter-spacing: .14em;
+  color: var(--text-muted); text-transform: uppercase;
+}
 .panel-hint  { font-size: 11px; color: var(--text-dim); }
 .panel-body  { padding: 15px; }
 

@@ -1,9 +1,20 @@
-/* Output-specific overrides — base.css handles all shared styles */
+/* Output-specific overrides — base.css handles all shared styles.
+   Esta tela é um DISPLAY lido à distância (HDMI numa matriz), não um formulário:
+   células são texto puro (sem caixas), a tabela preenche a altura da tela e a
+   densidade se ajusta ao número de linhas (--rows, definido pelo output.js). */
 
 /* Kiosk: no scroll, no selection, clean HDMI frame */
 body {
   overflow: hidden;
   user-select: none;
+}
+
+:root {
+  --rows: 8;
+  /* Orçamento vertical: header + strip + memo + thead + rodapé ≈ 400px */
+  --row-h: calc((100vh - 400px) / var(--rows, 8));
+  --cell-fs: clamp(13px, calc(var(--row-h) * .42), 26px);
+  --cell-pad: clamp(4px, calc(var(--row-h) * .16), 16px);
 }
 
 /* Footer fixed at bottom */
@@ -17,28 +28,97 @@ footer {
   z-index: 30;
 }
 
+/* Legenda vive dentro da barra do rodapé, centralizada */
+.legend {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 31;
+  padding: 9px 0;
+  gap: 18px;
+  font-size: 12px;
+}
+.legend-dot { width: 10px; height: 10px; }
+
 /* Ensure table section doesn't overlap footer */
 .table-section {
-  padding-bottom: 48px;
+  padding-bottom: 52px;
 }
 
 /* Row hover off on output — no interactivity */
 tbody tr:hover { background: initial; }
 
-/* Tighter rows for 20-line density at 1080p */
-tbody td { padding: 5px 7px; }
-
-/* Cell boxes in output mode */
+/* Células tipográficas: texto direto na linha, sem borda/fundo de input.
+   A altura da linha é distribuída — a tabela preenche a tela, não flutua nela. */
+tbody tr { height: var(--row-h); }
+tbody td { padding: var(--cell-pad) 10px; }
+tbody td:first-child { padding-left: 20px; }
 .cell-box {
-  min-height: 28px;
-  font-size: 12px;
+  min-height: calc(var(--cell-fs) * 1.3);
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  font-size: var(--cell-fs);
+  font-weight: 500;
 }
 
-/* Status badge size matches cell height */
-.status-badge {
-  min-height: 28px;
-  font-size: 11px;
+/* Frame é o identificador da linha — condensed caps, com presença */
+.col-frame .cell-box {
+  font-family: var(--font-display);
+  font-size: calc(var(--cell-fs) * 1.12);
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: var(--text);
 }
+.col-model .cell-box,
+.col-source .cell-box { color: var(--text-muted); }
+.col-note .cell-box   { color: var(--text-muted); }
+
+/* Separadores de linha mais presentes (leitura à distância) */
+tbody tr { border-bottom: 1px solid rgba(56,65,86,.55); }
+tbody tr:nth-child(even) { background: rgba(255,255,255,.02); }
+
+/* Tally bar: borda esquerda na cor do status — leitura de relance, vernáculo
+   de multiviewer. Progressive enhancement (:has); sem suporte, só não aparece. */
+tbody tr:has(.status-badge.ok)         td:first-child { box-shadow: inset 6px 0 0 var(--ok); }
+tbody tr:has(.status-badge.standby)    td:first-child { box-shadow: inset 6px 0 0 var(--standby); }
+tbody tr:has(.status-badge.atencao)    td:first-child { box-shadow: inset 6px 0 0 var(--atencao); }
+tbody tr:has(.status-badge.off)        td:first-child { box-shadow: inset 6px 0 0 var(--off); }
+tbody tr:has(.status-badge.manutencao) td:first-child { box-shadow: inset 6px 0 0 var(--maintenance); }
+
+/* Linhas em estado de alerta ganham um tint sutil de fundo */
+tbody tr:has(.status-badge.atencao) { background: rgba(250,204,21,.05); }
+tbody tr:has(.status-badge.off)     { background: rgba(239,68,68,.05); }
+
+/* Status badge acompanha a densidade — sem altura/padding fixos, senão a
+   linha estoura o cálculo em densidade máxima e corta o fim da tabela */
+.status-badge {
+  min-height: 0;
+  padding: clamp(2px, calc(var(--row-h) * .1), 9px) 8px;
+  font-size: max(12px, calc(var(--cell-fs) * .78));
+}
+
+/* Cabeçalho da tabela um pouco maior que no controle */
+thead th {
+  font-size: 14px;
+  padding: 10px;
+}
+thead th:first-child { padding-left: 20px; }
+
+/* Larguras de coluna dimensionadas para a fonte grande do display
+   (as do base.css servem ao controle, que tem fonte menor) */
+.col-frame  { width: 160px; }
+.col-model  { width: 140px; }
+.col-source { width: 130px; }
+.col-desc   { width: 36%; }
+.col-note   { width: 24%; }
+.col-status { width: 190px; }
+
+/* Relógio do header com mais presença — é referência da sala */
+.mini-value { font-size: 16px; }
 
 /* Big clock: no drag cursor on output */
 .big-clock-time {
