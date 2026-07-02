@@ -35,12 +35,14 @@ export async function handleUpload(
   let contentType  = "application/octet-stream";
   let sizeBytes    = 0;
   let aborted      = false;
+  let gotFile      = false;
 
   try {
     const bb = busboy({ headers: req.headers, limits: { files: 1, fileSize: LIMITS.MAX_FILE_BYTES } });
 
     await new Promise<void>((resolve, reject) => {
       bb.on("file", (_field, stream, info) => {
+        gotFile      = true;
         originalName = info.filename || "upload";
         contentType  = info.mimeType || "application/octet-stream";
 
@@ -56,12 +58,20 @@ export async function handleUpload(
         out.on("finish", resolve);
         out.on("error",  reject);
       });
+      // Multipart without a file field: busboy never emits "file", so without
+      // this the promise would hang the request forever.
+      bb.on("close", () => { if (!gotFile) reject(new Error("no_file")); });
       bb.on("error", reject);
+      // req.pipe(bb) does not forward request errors — a client that drops
+      // mid-upload would leave the promise pending and the tmp file orphaned.
+      req.on("aborted", () => reject(new Error("client_aborted")));
+      req.on("error", reject);
       req.pipe(bb);
     });
   } catch (err) {
     if (existsSync(tmp)) unlinkSync(tmp);
     const reason = err instanceof Error ? err.message : "upload_error";
+    if (reason === "client_aborted") { res.destroy(); return; }
     const status = reason === "file_too_large" ? 413 : 400;
     json(res, status, { error: reason, maxBytes: LIMITS.MAX_FILE_BYTES });
     return;
@@ -108,7 +118,14 @@ export function handleDownload(res: ServerResponse, id: string): void {
     "Content-Length":      String(meta.sizeBytes),
     "Cache-Control":       "no-store",
   });
-  createReadStream(filePath).pipe(res);
+  const stream = createReadStream(filePath);
+  // An unhandled "error" on the read stream (file deleted mid-transfer, I/O
+  // fault) would crash the whole process — abort just this response instead.
+  stream.on("error", (err) => {
+    console.error({ operation: "download", id, error: err.message });
+    res.destroy();
+  });
+  stream.pipe(res);
 }
 
 // DELETE /api/files/:id

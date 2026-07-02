@@ -42,10 +42,15 @@ export async function fetchWeather(lat: number, lon: number): Promise<WeatherDat
     const tempC = Number(cur["temperature_2m"] ?? 0);
     const raining = RAINING_CODES.has(code);
 
-    // Average of next 6h precipitation probability
+    // Average of next 6h precipitation probability. The hourly arrays start at
+    // 00:00 local time, so slice from the current hour — not from index 0,
+    // which would report the (already past) early-morning window.
     const hourly = data["hourly"] as Record<string, unknown> | undefined;
     const probs = (hourly?.["precipitation_probability"] as number[] | undefined) ?? [];
-    const nextSix = probs.slice(0, 6);
+    const times = (hourly?.["time"] as string[] | undefined) ?? [];
+    const currentTime = String(cur["time"] ?? "");
+    const nowIdx = times.findIndex((t) => t >= currentTime.slice(0, 13));
+    const nextSix = probs.slice(Math.max(nowIdx, 0), Math.max(nowIdx, 0) + 6);
     const rainChancePct = nextSix.length > 0
       ? Math.round(nextSix.reduce((a, b) => a + b, 0) / nextSix.length)
       : 0;

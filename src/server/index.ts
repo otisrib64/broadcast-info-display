@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { join } from "node:path";
 import { WebSocketServer, type WebSocket } from "ws";
-import { loadState } from "./state.js";
+import { loadState, getState } from "./state.js";
 import { parseClientMessage, applyMessage, sendState, broadcast } from "./protocol.js";
 import { resolveStatic } from "./static.js";
 import { startTelemetry, sendTelemetryTo } from "./telemetry/index.js";
@@ -117,7 +117,7 @@ startTelemetry(clients);
 wss.on("connection", (ws, req) => {
   clients.add(ws);
   console.log({ operation: "ws.connect", clients: clients.size, ip: req.socket.remoteAddress });
-  sendState(ws, loadState());
+  sendState(ws, getState());
   sendTelemetryTo(ws);
 
   ws.on("message", (data) => {

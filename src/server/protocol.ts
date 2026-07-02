@@ -1,6 +1,23 @@
 import type { WebSocket } from "ws";
-import { ClientMessageSchema, type ClientMessage, type ServerMessage, type State } from "../shared/types.js";
+import { ClientMessageSchema, type ClientMessage, type Row, type ServerMessage, type State } from "../shared/types.js";
 import { getState, saveState } from "./state.js";
+
+/**
+ * Defensive reorder: dedupes ids and re-appends rows missing from the message
+ * so a malformed reorder can never duplicate or silently drop a row.
+ */
+export function reorderRows(rows: Row[], ids: string[]): Row[] {
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const seen = new Set<string>();
+  const ordered = ids.flatMap((id) => {
+    const row = byId.get(id);
+    if (!row || seen.has(id)) return [];
+    seen.add(id);
+    return [row];
+  });
+  const missing = rows.filter((r) => !seen.has(r.id));
+  return [...ordered, ...missing];
+}
 
 export function parseClientMessage(raw: string): ClientMessage | null {
   try {
@@ -35,12 +52,7 @@ export function applyMessage(msg: ClientMessage): State {
       return next;
     }
     case "reorder": {
-      const byId = new Map(current.rows.map((r) => [r.id, r]));
-      const rows = msg.ids.flatMap((id) => {
-        const row = byId.get(id);
-        return row ? [row] : [];
-      });
-      const next = { ...current, rows };
+      const next = { ...current, rows: reorderRows(current.rows, msg.ids) };
       saveState(next);
       return next;
     }
