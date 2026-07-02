@@ -77,6 +77,28 @@ describe("StateSchema", () => {
   });
 });
 
+describe("schema size caps (table-driven)", () => {
+  const baseRow = { id: "1", frame: "F", model: "", source: "S", description: "D", note: "", status: "ok" };
+
+  const cases: Array<{ name: string; check: (t: typeof import("../shared/types.js")) => boolean; valid: boolean }> = [
+    { name: "cell at 500 chars ok",       check: (t) => t.RowSchema.safeParse({ ...baseRow, note: "x".repeat(500) }).success,   valid: true  },
+    { name: "cell over 500 chars fails",  check: (t) => t.RowSchema.safeParse({ ...baseRow, note: "x".repeat(501) }).success,   valid: false },
+    { name: "id over 64 chars fails",     check: (t) => t.RowSchema.safeParse({ ...baseRow, id: "x".repeat(65) }).success,      valid: false },
+    { name: "memo at 2000 chars ok",      check: (t) => t.StateSchema.safeParse({ rows: [], memo: "m".repeat(2000) }).success,  valid: true  },
+    { name: "memo over 2000 chars fails", check: (t) => t.StateSchema.safeParse({ rows: [], memo: "m".repeat(2001) }).success,  valid: false },
+    { name: "column label over 100 fails", check: (t) => t.ColumnsSchema.safeParse({ frame: "x".repeat(101), model: "M", source: "S", description: "D", note: "N", status: "St" }).success, valid: false },
+    { name: "image src over cap fails",   check: (t) => t.ImageConfigSchema.safeParse({ src: "d".repeat(4_500_001), x: 0, y: 0, width: 100, visible: true }).success, valid: false },
+    { name: "reorder id over 64 fails",   check: (t) => t.ReorderMessageSchema.safeParse({ type: "reorder", ids: ["x".repeat(65)] }).success, valid: false },
+  ];
+
+  for (const { name, check, valid } of cases) {
+    it(name, async () => {
+      const types = await import("../shared/types.js");
+      expect(check(types)).toBe(valid);
+    });
+  }
+});
+
 describe("ColumnsSchema", () => {
   it("validates all required column keys", async () => {
     const { ColumnsSchema } = await import("../shared/types.js");
