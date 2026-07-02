@@ -4,27 +4,95 @@
 .tabbar {
   display: flex;
   gap: 8px;
-  padding: 12px 24px 0;
+  padding: 14px 24px 0;
   background: rgba(8,10,16,.24);
+  border-bottom: 1px solid var(--border);
 }
 
 .tab-btn {
   color: var(--text-muted);
-  background: rgba(31,38,57,.52);
-  border: 1px solid var(--border-mid);
+  background: transparent;
+  border: 1px solid transparent;
   border-bottom: 0;
   border-radius: var(--radius) var(--radius) 0 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 9px 16px;
 }
 
-.tab-btn.active,
 .tab-btn:hover {
-  background: rgba(47,56,82,.72);
-  border-color: rgba(105,119,255,.74);
+  background: rgba(47,56,82,.5);
+  color: var(--text);
+}
+
+/* Aba ativa: presa à borda inferior, com tally índigo no topo */
+.tab-btn.active {
+  background: rgba(31,38,57,.9);
+  border-color: var(--border-mid);
   color: #fff;
+  box-shadow: inset 0 3px 0 var(--accent);
+  margin-bottom: -1px;
+  padding-bottom: 10px;
 }
 
 .tab-panel { display: block; }
 .tab-panel.hidden { display: none; }
+
+/* ── Tabela densa ──────────────────────────────────────────────────────────────
+   O control é planilha de operação: linhas baixas (mais linhas visíveis sem
+   rolar), tally de status na borda esquerda — mesmo vernáculo do output. */
+#tab-tabela tbody td { padding: 3px 5px; }
+#tab-tabela tbody td:first-child { padding-left: 10px; }
+#tab-tabela tbody input[type="text"] {
+  min-height: 27px;
+  padding: 3px 8px;
+  font-size: 12.5px;
+  background: rgba(13,16,25,.5);
+  border-color: rgba(56,65,86,.6);
+  border-radius: 6px;
+  box-shadow: none;
+}
+#tab-tabela tbody input[type="text"]:hover { border-color: #4b5872; background: rgba(20,25,38,.75); }
+#tab-tabela tbody input[type="text"]:focus { background: #202842; border-color: var(--accent); }
+#tab-tabela tbody select {
+  padding: 4px 6px;
+  font-size: 11.5px;
+  border-radius: 6px;
+}
+#tab-tabela .btn-remove { width: 26px; height: 26px; font-size: 13px; }
+
+/* Linha em edição fica evidente */
+#tab-tabela tbody tr:focus-within { background: rgba(105,119,255,.06); }
+
+/* Tally de status por linha (progressive enhancement via :has) */
+#tab-tabela tbody tr:has(select.ok)         td:first-child { box-shadow: inset 3px 0 0 var(--ok); }
+#tab-tabela tbody tr:has(select.standby)    td:first-child { box-shadow: inset 3px 0 0 var(--standby); }
+#tab-tabela tbody tr:has(select.atencao)    td:first-child { box-shadow: inset 3px 0 0 var(--atencao); }
+#tab-tabela tbody tr:has(select.off)        td:first-child { box-shadow: inset 3px 0 0 var(--off); }
+#tab-tabela tbody tr:has(select.manutencao) td:first-child { box-shadow: inset 3px 0 0 var(--maintenance); }
+
+/* Cabeçalho da tabela cola logo abaixo do header ao rolar (header é sticky) */
+#tab-tabela thead th {
+  position: sticky;
+  top: 74px; /* altura do header sticky (75px) − 1px de sobreposição */
+  z-index: 5;
+  background: #0a0d15;
+}
+
+/* ── Header e strip compactos ─────────────────────────────────────────────────
+   Conexão/horário e telemetria são referência, não protagonistas — régua fina
+   pra devolver espaço vertical à tabela. */
+.header-center { max-width: 560px; }
+.mini-card { min-height: 36px; padding: 5px 11px; }
+
+.critical-strip { margin: 10px 24px 0; display: flex; gap: 10px; }
+.info-card { flex: 1; min-height: 0; padding: 7px 12px; }
+.info-label { font-size: 10px; margin-bottom: 2px; }
+.info-main  { font-size: 17px; }
+.info-sub   { margin-top: 1px; font-size: 10px; }
 
 /* Row counter badge */
 .row-counter-badge {

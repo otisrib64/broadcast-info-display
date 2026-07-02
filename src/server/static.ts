@@ -9,6 +9,7 @@ const MIME: Record<string, string> = {
   ".ico":  "image/x-icon",
   ".png":  "image/png",
   ".svg":  "image/svg+xml",
+  ".woff2": "font/woff2",
 };
 
 function mimeFor(path: string): string {
