@@ -1,5 +1,12 @@
 # Broadcast Info Display
 
+> **⚠️ Versão Fable 5 (fork — não mergeada na `main`)**
+> Esta branch (`fix/fable5`) contém a **v0.3.1**, revisão feita com o Claude **Fable 5**:
+> 17 correções de bugs, robustez e hardening sobre a v0.3.0 (janela de chuva, crash no
+> download, backpressure no WebSocket, limites de payload, escritas coalescidas etc.).
+> Ainda **não testada no Raspberry Pi** — a `main` continua na v0.3.0 estável até esta
+> versão ser validada em campo.
+
 Appliance de display de informações para broadcast ao vivo. Roda num **Raspberry Pi** com saída HDMI para monitor ou matriz de vídeo. Operadores editam pela rede local; a tela atualiza em tempo real.
 
 ```
