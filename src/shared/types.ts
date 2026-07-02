@@ -68,8 +68,10 @@ export const ImageConfigSchema = z.object({
 });
 export type ImageConfig = z.infer<typeof ImageConfigSchema>;
 
+export const MAX_ROWS = 20;
+
 export const StateSchema = z.object({
-  rows: z.array(RowSchema).max(20),
+  rows: z.array(RowSchema).max(MAX_ROWS),
   columns: ColumnsSchema.optional(),
   image: ImageConfigSchema.optional(),
   memo: z.string().max(MEMO_MAX).optional(),

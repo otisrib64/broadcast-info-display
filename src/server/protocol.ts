@@ -1,5 +1,5 @@
 import type { WebSocket } from "ws";
-import { ClientMessageSchema, type ClientMessage, type Row, type ServerMessage, type State } from "../shared/types.js";
+import { ClientMessageSchema, MAX_ROWS, type ClientMessage, type Row, type ServerMessage, type State } from "../shared/types.js";
 import { getState, saveState } from "./state.js";
 
 /**
@@ -39,6 +39,12 @@ export function applyMessage(msg: ClientMessage): State {
     }
     case "upsertRow": {
       const exists = current.rows.some((r) => r.id === msg.row.id);
+      // The control disables "+ Linha" at the cap; this is defense in depth so
+      // an extra insert degrades to a no-op instead of a ZodError in saveState.
+      if (!exists && current.rows.length >= MAX_ROWS) {
+        console.warn({ operation: "upsertRow", msg: "rows_limit_reached", limit: MAX_ROWS });
+        return current;
+      }
       const rows = exists
         ? current.rows.map((r) => (r.id === msg.row.id ? msg.row : r))
         : [...current.rows, msg.row];

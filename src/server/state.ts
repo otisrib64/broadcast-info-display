@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, renameSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, renameSync, mkdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { StateSchema, type State } from "../shared/types.js";
 
@@ -9,8 +9,17 @@ const EMPTY_STATE: State = { rows: [] };
 
 let cache: State = EMPTY_STATE;
 
+// Schema caps keep a legit state under ~5 MB; a bigger file is corrupt or
+// tampered and must not be buffered into RAM on boot.
+const MAX_STATE_FILE_BYTES = 10 * 1024 * 1024;
+
 export function loadState(): State {
   try {
+    const size = statSync(STATE_PATH).size;
+    if (size > MAX_STATE_FILE_BYTES) {
+      console.warn({ operation: "loadState", msg: "state file too large, using empty", size });
+      return EMPTY_STATE;
+    }
     const raw = readFileSync(STATE_PATH, "utf8");
     const parsed = StateSchema.safeParse(JSON.parse(raw));
     if (!parsed.success) {

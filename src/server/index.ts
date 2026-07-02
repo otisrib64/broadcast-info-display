@@ -130,7 +130,7 @@ wss.on("connection", (ws, req) => {
         operation: "ws.message",
         type: msg.type,
         error: err instanceof Error ? err.message : String(err),
-        hint: "state save failed — is the data dir writable by the service user (pi)?",
+        hint: "resulting state rejected by schema validation — message ignored",
       });
     }
   });
