@@ -159,7 +159,7 @@ header {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  max-width: 650px;
+  max-width: 560px;
 }
 
 .header-right { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
@@ -169,8 +169,8 @@ header {
   background: linear-gradient(180deg, rgba(31,38,57,.78), rgba(22,27,41,.72));
   border: 1px solid rgba(56,65,86,.9);
   border-radius: var(--radius);
-  padding: 8px 11px;
-  min-height: 42px;
+  padding: 5px 11px;
+  min-height: 36px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -219,20 +219,21 @@ header {
   color: var(--off); background: rgba(239,68,68,.08);
 }
 
-/* ── Critical info strip ─────────────────────────────────────────────────────── */
+/* ── Critical info strip ───────────────────────────────────────────────────────
+   Régua fina e IDÊNTICA nas duas telas: control e output precisam da mesma
+   geometria vertical — imagem e relógio são posicionados por pixel absoluto. */
 .critical-strip {
-  margin: 12px 24px 0;
-  display: grid;
-  grid-template-columns: 1.1fr 1fr 1fr 1.2fr;
+  margin: 10px 24px 0;
+  display: flex;
   gap: 10px;
 }
 
 .info-card {
-  min-height: 58px;
+  flex: 1;
   background: linear-gradient(180deg, rgba(25,30,45,.92), rgba(18,23,36,.88));
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 10px 12px;
+  padding: 7px 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -243,17 +244,17 @@ header {
 .info-label {
   display: block;
   font-family: var(--font-display);
-  font-size: 12px; font-weight: 600; letter-spacing: .16em;
-  text-transform: uppercase; color: var(--text-dim); margin-bottom: 4px;
+  font-size: 10px; font-weight: 600; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--text-dim); margin-bottom: 2px;
 }
 .info-main {
   display: block;
   font-family: var(--font-display);
-  font-size: 24px; font-weight: 700; letter-spacing: .01em;
+  font-size: 17px; font-weight: 700; letter-spacing: .01em;
   color: var(--text); line-height: 1; white-space: nowrap;
 }
 .info-sub {
-  display: block; margin-top: 4px; font-size: 11px;
+  display: block; margin-top: 1px; font-size: 10px;
   color: var(--text-muted); white-space: nowrap;
 }
 
@@ -262,10 +263,6 @@ header {
   background: var(--ok); box-shadow: 0 0 14px rgba(34,197,94,.85); flex-shrink: 0;
 }
 .internet-led.offline { background: var(--off); box-shadow: 0 0 14px rgba(239,68,68,.85); }
-
-@media (max-width: 1280px) {
-  .critical-strip { grid-template-columns: 1fr 1fr; }
-}
 
 /* ── Memo banner ─────────────────────────────────────────────────────────────── */
 .memo-banner {
@@ -322,7 +319,10 @@ tbody tr { border-bottom: 1px solid var(--border); }
 tbody tr:last-child { border-bottom: 0; }
 tbody tr:nth-child(even) { background: rgba(255,255,255,.014); }
 tbody tr:hover { background: rgba(105,119,255,.035); }
-tbody td { padding: 7px 7px; vertical-align: middle; }
+/* Densidade compartilhada: linhas ~34px nas DUAS telas — paridade de geometria
+   pro posicionamento por pixel de imagem/relógio feito no control. */
+tbody td { padding: 3px 5px; vertical-align: middle; }
+tbody td:first-child { padding-left: 10px; }
 
 .col-frame  { width: 90px; }
 .col-model  { width: 110px; }
@@ -349,26 +349,26 @@ thead input.column-title-input {
 thead input.column-title-input:hover { border-color: var(--border-mid); background: rgba(255,255,255,.025); color: var(--text-muted); }
 thead input.column-title-input:focus { outline: none; border-color: var(--accent); background: var(--input-bg); color: var(--text); }
 
-/* Cell inputs */
+/* Cell inputs (control) e cell-box (output): MESMA geometria — o output é o
+   espelho read-only do control */
 input[type="text"] {
-  width: 100%; min-height: 32px;
-  background: linear-gradient(180deg, rgba(31,38,57,.98), rgba(27,33,50,.98));
-  border: 1px solid var(--input-border);
-  color: var(--text); font-family: var(--font-mono); font-size: 13px;
-  padding: 6px 8px; border-radius: var(--radius);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+  width: 100%; min-height: 27px;
+  background: rgba(13,16,25,.5);
+  border: 1px solid rgba(56,65,86,.6);
+  color: var(--text); font-family: var(--font-mono); font-size: 12.5px;
+  padding: 3px 8px; border-radius: 6px;
 }
-input[type="text"]:hover { border-color: #4b5872; }
+input[type="text"]:hover { border-color: #4b5872; background: rgba(20,25,38,.75); }
 input[type="text"]:focus { outline: none; background: #202842; border-color: var(--accent); }
 
 /* Read-only cell display */
 .cell-box {
-  width: 100%; min-height: 32px;
+  width: 100%; min-height: 27px;
   display: flex; align-items: center;
-  background: linear-gradient(180deg, rgba(31,38,57,.98), rgba(27,33,50,.98));
-  border: 1px solid var(--input-border);
-  color: var(--text); font-family: var(--font-mono); font-size: 13px;
-  padding: 6px 8px; border-radius: var(--radius);
+  background: rgba(13,16,25,.5);
+  border: 1px solid rgba(56,65,86,.6);
+  color: var(--text); font-family: var(--font-mono); font-size: 12.5px;
+  padding: 3px 8px; border-radius: 6px;
   overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
 }
 .col-frame input[type="text"], .col-frame .cell-box {
@@ -378,8 +378,8 @@ input[type="text"]:focus { outline: none; background: #202842; border-color: var
 /* Status select */
 select {
   width: 100%; background: var(--input-bg); color: var(--text);
-  font-family: inherit; font-size: 12px; font-weight: 950;
-  padding: 6px 8px; border-radius: var(--radius); cursor: pointer;
+  font-family: inherit; font-size: 11.5px; font-weight: 950;
+  padding: 4px 6px; border-radius: 6px; cursor: pointer;
   border: 1px solid var(--input-border); letter-spacing: .06em; text-transform: uppercase;
 }
 select:focus { outline: none; border-color: var(--accent); }
@@ -390,14 +390,14 @@ select.off        { color: var(--off);         border-color: var(--off);        
 select.manutencao { color: var(--maintenance); border-color: var(--maintenance); background: rgba(168,85,247,.10); }
 select option { background: #10131d; font-weight: 800; }
 
-/* Status badge (read-only output) */
+/* Status badge (read-only output) — mesma altura do select do control */
 .status-badge {
-  width: 100%; min-height: 32px;
+  width: 100%; min-height: 27px;
   display: flex; align-items: center; justify-content: center;
-  padding: 6px 8px; border-radius: var(--radius);
+  padding: 3px 8px; border-radius: 6px;
   border: 1px solid currentColor;
   font-family: var(--font-display);
-  font-size: 15px; font-weight: 700; letter-spacing: .1em;
+  font-size: 13px; font-weight: 700; letter-spacing: .1em;
   text-transform: uppercase; font-variant-numeric: tabular-nums;
 }
 .status-badge.ok         { color: var(--ok);          background: rgba(34,197,94,.09); }
