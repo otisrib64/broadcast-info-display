@@ -1,13 +1,12 @@
 import { createServer } from "node:http";
 import { join } from "node:path";
 import { WebSocketServer, type WebSocket } from "ws";
-import { loadState, getState } from "./state.js";
-import { parseClientMessage, applyMessage, sendState, broadcast } from "./protocol.js";
+import { loadState, getState, flushStateSync } from "./state.js";
+import { parseClientMessage, applyMessage, sendState, broadcast, broadcastMessage } from "./protocol.js";
 import { resolveStatic } from "./static.js";
 import { startTelemetry, sendTelemetryTo } from "./telemetry/index.js";
 import { handleList, handleUpload, handleDownload, handleDelete } from "./files/api.js";
 import { handleGetNetwork, handleApplyNetwork } from "./network/api.js";
-import type { ServerMessage } from "../shared/types.js";
 
 const PORT = Number(process.env.PORT ?? 8080);
 const WEB_DIR = join(process.cwd(), "src", "web");
@@ -28,10 +27,7 @@ const state = loadState();
 console.log({ operation: "startup", rows: state.rows.length, port: PORT });
 
 function broadcastFilesChanged(): void {
-  const payload = JSON.stringify({ type: "filesChanged" } satisfies ServerMessage);
-  for (const ws of clients) {
-    if (ws.readyState === 1) ws.send(payload);
-  }
+  broadcastMessage(clients, { type: "filesChanged" });
 }
 
 const httpServer = createServer((req, res) => {
@@ -152,3 +148,13 @@ wss.on("connection", (ws, req) => {
 httpServer.listen(PORT, "0.0.0.0", () => {
   console.log({ operation: "listening", port: PORT, url: `http://localhost:${PORT}` });
 });
+
+// State writes are coalesced (500 ms) — flush the pending one before dying so
+// `systemctl stop`/restart never loses the last edit.
+for (const signal of ["SIGTERM", "SIGINT"] as const) {
+  process.on(signal, () => {
+    flushStateSync();
+    process.exit(0);
+  });
+}
+process.on("beforeExit", () => flushStateSync());

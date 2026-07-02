@@ -28,12 +28,52 @@ export function getState(): State {
   return cache;
 }
 
+// Writing state.json on every keystroke (up to ~4 MB with an overlay image)
+// blocks the event loop and wears the SD card. The cache updates immediately
+// (broadcast reads it), but disk writes are coalesced: latest-wins, flushed at
+// most every 500 ms, plus a sync flush on shutdown so nothing is lost.
+const FLUSH_INTERVAL_MS = 500;
+let dirty = false;
+let flushTimer: NodeJS.Timeout | null = null;
+
 export function saveState(state: State): void {
-  const validated = StateSchema.parse(state);
+  cache = StateSchema.parse(state);
+  dirty = true;
+  if (!flushTimer) {
+    flushTimer = setTimeout(() => {
+      flushTimer = null;
+      try {
+        flushToDisk();
+      } catch (err) {
+        console.error({
+          operation: "saveState.flush",
+          error: err instanceof Error ? err.message : String(err),
+          hint: "state save failed — is the data dir writable by the service user (pi)?",
+        });
+      }
+    }, FLUSH_INTERVAL_MS);
+  }
+}
+
+function flushToDisk(): void {
+  if (!dirty) return;
+  dirty = false;
   // The data dir is gitignored and git drops empty dirs, so a reset-based update
   // can leave it missing — recreate it so writes never fail with ENOENT.
   mkdirSync(dirname(STATE_PATH), { recursive: true });
-  writeFileSync(TMP_PATH, JSON.stringify(validated, null, 2), "utf8");
+  writeFileSync(TMP_PATH, JSON.stringify(cache, null, 2), "utf8");
   renameSync(TMP_PATH, STATE_PATH);
-  cache = validated;
+}
+
+/** Flush any pending write immediately — called on SIGTERM/SIGINT/beforeExit. */
+export function flushStateSync(): void {
+  if (flushTimer) {
+    clearTimeout(flushTimer);
+    flushTimer = null;
+  }
+  try {
+    flushToDisk();
+  } catch (err) {
+    console.error({ operation: "flushStateSync", error: err instanceof Error ? err.message : String(err) });
+  }
 }

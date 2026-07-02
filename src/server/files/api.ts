@@ -16,8 +16,31 @@ export function handleList(res: ServerResponse): void {
   json(res, 200, listFiles());
 }
 
+// The Pi handles one or two 75 MB streams fine; unbounded concurrency would
+// saturate the SD card and CPU, starving the WS broadcast loop.
+const MAX_CONCURRENT_UPLOADS = 2;
+let uploadsInFlight = 0;
+
 // POST /api/files → multipart upload (busboy)
 export async function handleUpload(
+  req: IncomingMessage,
+  res: ServerResponse,
+  broadcastFilesChanged: () => void,
+): Promise<void> {
+  if (uploadsInFlight >= MAX_CONCURRENT_UPLOADS) {
+    req.resume();
+    json(res, 429, { error: "too_many_uploads", max: MAX_CONCURRENT_UPLOADS });
+    return;
+  }
+  uploadsInFlight++;
+  try {
+    await doUpload(req, res, broadcastFilesChanged);
+  } finally {
+    uploadsInFlight--;
+  }
+}
+
+async function doUpload(
   req: IncomingMessage,
   res: ServerResponse,
   broadcastFilesChanged: () => void,

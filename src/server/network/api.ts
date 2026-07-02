@@ -16,10 +16,20 @@ export function handleGetNetwork(res: ServerResponse): void {
   }
 }
 
+// A network config payload is a few hundred bytes; anything bigger is abuse.
+const MAX_BODY_BYTES = 16 * 1024;
+
 // POST /api/network → apply config
 export async function handleApplyNetwork(req: IncomingMessage, res: ServerResponse): Promise<void> {
   let body = "";
-  for await (const chunk of req) body += chunk;
+  for await (const chunk of req) {
+    body += chunk;
+    if (body.length > MAX_BODY_BYTES) {
+      json(res, 413, { error: "body_too_large" });
+      req.destroy();
+      return;
+    }
+  }
 
   let input: unknown;
   try {

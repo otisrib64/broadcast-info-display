@@ -6,6 +6,9 @@ export interface GeoLocation {
 }
 
 const TIMEOUT_MS = 5000;
+// GeoIP responses are ~1 KB; cap protects the Pi from a hijacked DNS/captive
+// portal answering with an arbitrarily large body.
+const MAX_RESPONSE_BYTES = 256 * 1024;
 
 export async function detectLocation(): Promise<GeoLocation | null> {
   // env override for Pi provisioning (no outbound lookup needed on known sites)
@@ -27,6 +30,7 @@ async function tryIpApiCo(): Promise<GeoLocation | null> {
   try {
     const res = await fetch("https://ipapi.co/json/", { signal: ctrl.signal });
     if (!res.ok) return null;
+    if (Number(res.headers.get("content-length") ?? 0) > MAX_RESPONSE_BYTES) return null;
     const data = await res.json() as Record<string, unknown>;
     if (data["error"]) return null;
     return {
@@ -49,6 +53,7 @@ async function tryIpInfo(): Promise<GeoLocation | null> {
     // ipinfo.io: HTTPS gratuito, 50k req/mês, campo loc="lat,lon"
     const res = await fetch("https://ipinfo.io/json", { signal: ctrl.signal });
     if (!res.ok) return null;
+    if (Number(res.headers.get("content-length") ?? 0) > MAX_RESPONSE_BYTES) return null;
     const data = await res.json() as Record<string, unknown>;
     const loc = String(data["loc"] ?? "");
     const [latStr, lonStr] = loc.split(",");

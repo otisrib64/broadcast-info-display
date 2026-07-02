@@ -74,11 +74,24 @@ export function sendState(ws: WebSocket, state: State): void {
   ws.send(JSON.stringify(msg));
 }
 
-export function broadcast(clients: Set<WebSocket>, state: State): void {
-  const payload = JSON.stringify({ type: "state", state } satisfies ServerMessage);
+// A stalled client (bad Wi-Fi, frozen kiosk) never drains its send buffer;
+// pushing more frames would grow it without bound and OOM the Pi. Skipping is
+// safe: state is snapshot-based (next broadcast carries everything) and
+// telemetry is disposable.
+const MAX_BUFFERED_BYTES = 8 * 1024 * 1024;
+
+export function broadcastMessage(clients: Set<WebSocket>, msg: ServerMessage): void {
+  const payload = JSON.stringify(msg);
   for (const client of clients) {
-    if (client.readyState === 1 /* OPEN */) {
-      client.send(payload);
+    if (client.readyState !== 1 /* OPEN */) continue;
+    if (client.bufferedAmount > MAX_BUFFERED_BYTES) {
+      console.warn({ operation: "broadcast", msg: "skipped slow client", buffered: client.bufferedAmount });
+      continue;
     }
+    client.send(payload);
   }
+}
+
+export function broadcast(clients: Set<WebSocket>, state: State): void {
+  broadcastMessage(clients, { type: "state", state });
 }

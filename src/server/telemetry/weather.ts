@@ -6,6 +6,9 @@ export interface WeatherData {
 }
 
 const TIMEOUT_MS = 8000;
+// A real forecast response is ~2 KB; a hijacked DNS/captive portal answering
+// with megabytes must not be buffered into the Pi's RAM.
+const MAX_RESPONSE_BYTES = 256 * 1024;
 
 // WMO weather code → human readable (Portuguese)
 const WMO_LABELS: Record<number, string> = {
@@ -34,6 +37,7 @@ export async function fetchWeather(lat: number, lon: number): Promise<WeatherDat
   try {
     const res = await fetch(url.toString(), { signal: ctrl.signal });
     if (!res.ok) return null;
+    if (Number(res.headers.get("content-length") ?? 0) > MAX_RESPONSE_BYTES) return null;
     const data = await res.json() as Record<string, unknown>;
     const cur = data["current"] as Record<string, unknown> | undefined;
     if (!cur) return null;
