@@ -103,9 +103,7 @@ function updateRowCounter() {
 // ── Image ──────────────────────────────────────────────────────────────────────
 
 function renderImage(image) {
-  // Only data:image/ URIs — the control panel never produces anything else,
-  // so a remote URL or non-image data URI here means a hostile/buggy sender.
-  if (!image?.src?.startsWith("data:image/")) { overlayImg.classList.add("hidden"); return; }
+  if (!image?.src) { overlayImg.classList.add("hidden"); return; }
   overlayImg.src = image.src;
   overlayImg.style.left  = `${image.x}px`;
   overlayImg.style.top   = `${image.y}px`;

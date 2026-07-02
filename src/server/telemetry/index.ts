@@ -1,6 +1,5 @@
 import type { WebSocket } from "ws";
 import type { ServerMessage, Telemetry } from "../../shared/types.js";
-import { broadcastMessage } from "../protocol.js";
 import { detectLocation } from "./geolocation.js";
 import { fetchWeather } from "./weather.js";
 import { checkInternet, getInternetStatus } from "./internet.js";
@@ -14,16 +13,20 @@ let lastTelemetry: Telemetry = {
   internet: { online: false, onlineSinceMs: null, lastDownAtMs: null },
 };
 
-function buildMessage(): ServerMessage {
-  return { type: "telemetry", telemetry: lastTelemetry };
+function buildPayload(): string {
+  const msg: ServerMessage = { type: "telemetry", telemetry: lastTelemetry };
+  return JSON.stringify(msg);
 }
 
 function broadcastTelemetry(clients: Set<WebSocket>): void {
-  broadcastMessage(clients, buildMessage());
+  const payload = buildPayload();
+  for (const ws of clients) {
+    if (ws.readyState === 1 /* OPEN */) ws.send(payload);
+  }
 }
 
 export function sendTelemetryTo(ws: WebSocket): void {
-  if (ws.readyState === 1) ws.send(JSON.stringify(buildMessage()));
+  if (ws.readyState === 1) ws.send(buildPayload());
 }
 
 export function startTelemetry(clients: Set<WebSocket>): void {

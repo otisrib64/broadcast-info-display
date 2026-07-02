@@ -8,8 +8,8 @@ SERVICE_USER=pi   # must match User= in broadcast-display.service
 PORT=8080
 KIOSK_URL="http://localhost:${PORT}/output"
 
-echo "==> Installing Node.js 22 (pinned major for reproducible installs)"
-curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+echo "==> Installing Node.js (LTS)"
+curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
 apt-get install -y nodejs
 
 echo "==> Copying app to ${APP_DIR}"

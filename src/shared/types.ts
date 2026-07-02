@@ -3,33 +3,24 @@ import { z } from "zod";
 export const StatusSchema = z.enum(["ok", "standby", "atencao", "off", "manutencao"]);
 export type Status = z.infer<typeof StatusSchema>;
 
-// Upper bounds keep a hostile/buggy client from parking megabytes of text in
-// RAM and state.json on a 1 GB Pi. Generous for real use (cell text ~40 chars).
-const CELL_MAX  = 500;
-const ID_MAX    = 64;
-const LABEL_MAX = 100;
-const MEMO_MAX  = 2000;
-// 3 MB binary ≈ 4 MB base64 (client-side cap), under the 5 MB WS frame limit.
-const IMAGE_SRC_MAX = 4_500_000;
-
 export const RowSchema = z.object({
-  id: z.string().min(1).max(ID_MAX),
-  frame: z.string().max(CELL_MAX),
-  model: z.string().max(CELL_MAX).default(""),
-  source: z.string().max(CELL_MAX),
-  description: z.string().max(CELL_MAX),
-  note: z.string().max(CELL_MAX),
+  id: z.string().min(1),
+  frame: z.string(),
+  model: z.string().default(""),
+  source: z.string(),
+  description: z.string(),
+  note: z.string(),
   status: StatusSchema,
 });
 export type Row = z.infer<typeof RowSchema>;
 
 export const ColumnsSchema = z.object({
-  frame: z.string().max(LABEL_MAX),
-  model: z.string().max(LABEL_MAX),
-  source: z.string().max(LABEL_MAX),
-  description: z.string().max(LABEL_MAX),
-  note: z.string().max(LABEL_MAX),
-  status: z.string().max(LABEL_MAX),
+  frame: z.string(),
+  model: z.string(),
+  source: z.string(),
+  description: z.string(),
+  note: z.string(),
+  status: z.string(),
 });
 export type Columns = z.infer<typeof ColumnsSchema>;
 
@@ -60,7 +51,7 @@ export const ClockConfigSchema = z.object({
 export type ClockConfig = z.infer<typeof ClockConfigSchema>;
 
 export const ImageConfigSchema = z.object({
-  src: z.string().max(IMAGE_SRC_MAX),
+  src: z.string(),
   x: z.number(),
   y: z.number(),
   width: z.number(),
@@ -68,13 +59,11 @@ export const ImageConfigSchema = z.object({
 });
 export type ImageConfig = z.infer<typeof ImageConfigSchema>;
 
-export const MAX_ROWS = 20;
-
 export const StateSchema = z.object({
-  rows: z.array(RowSchema).max(MAX_ROWS),
+  rows: z.array(RowSchema).max(20),
   columns: ColumnsSchema.optional(),
   image: ImageConfigSchema.optional(),
-  memo: z.string().max(MEMO_MAX).optional(),
+  memo: z.string().optional(),
   clock: ClockConfigSchema.optional(),
 });
 export type State = z.infer<typeof StateSchema>;
@@ -92,12 +81,12 @@ export const UpsertRowMessageSchema = z.object({
 
 export const RemoveRowMessageSchema = z.object({
   type: z.literal("removeRow"),
-  id: z.string().min(1).max(ID_MAX),
+  id: z.string().min(1),
 });
 
 export const ReorderMessageSchema = z.object({
   type: z.literal("reorder"),
-  ids: z.array(z.string().min(1).max(ID_MAX)).max(100),
+  ids: z.array(z.string().min(1)),
 });
 
 export const SetColumnsMessageSchema = z.object({

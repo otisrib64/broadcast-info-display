@@ -180,35 +180,11 @@ Recarregue o kiosk (ou `sudo reboot`) para o Chromium pegar a nova UI.
 
 ## Variáveis de ambiente
 
-| Variável   | Padrão | Descrição |
-|------------|--------|-----------|
-| `PORT`     | `8080` | Porta do servidor HTTP/WS |
-| `BID_LAT`  | —      | Latitude fixa (override da geolocalização por IP) |
-| `BID_LON`  | —      | Longitude fixa (idem) |
-| `BID_CITY` | —      | Nome da cidade exibido na faixa de telemetria |
+| Variável | Padrão | Descrição |
+|----------|--------|-----------|
+| `PORT`   | `8080` | Porta do servidor HTTP/WS |
 
 A porta pode ser alterada no serviço systemd em `provisioning/broadcast-display.service`.
-As três variáveis `BID_*` devem ser definidas juntas para o override valer.
-
----
-
-## Modelo de segurança
-
-O appliance assume **LAN de confiança**: qualquer máquina na rede que alcance a porta 8080
-pode editar a tabela, trocar a imagem e reconfigurar o IP do Pi. Não há autenticação — é uma
-decisão de design (operação de broadcast em rede fechada), não um esquecimento.
-
-Defesas em profundidade que existem mesmo assim:
-
-- Toda mensagem WS é validada por schema Zod (shape, enums, limites de tamanho por campo);
-  chaves desconhecidas são descartadas. `setState` substitui o estado inteiro por design.
-- Frames WS limitados a 5 MB; clientes lentos são pulados no broadcast (sem OOM).
-- Uploads: máx. 2 simultâneos, 75 MB/arquivo, 250 MB total, 15 arquivos; download força
-  `application/octet-stream` (nada renderiza no browser); IDs com guard de path traversal.
-- O painel só aceita `data:image/` como overlay — URL remota é ignorada.
-
-**Não exponha a porta 8080 à internet.** Se a rede não for confiável, feche a porta no
-firewall e acesse o controle por VPN/túnel SSH.
 
 ---
 
