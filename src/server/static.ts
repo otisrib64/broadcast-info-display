@@ -22,7 +22,7 @@ export function resolveStatic(
 ): { body: Buffer; mime: string } | null {
   // Guard: resolve to absolute path and confirm it stays inside webRoot
   const abs = resolve(join(webRoot, urlPath));
-  if (!abs.startsWith(resolve(webRoot) + "/") && abs !== resolve(webRoot)) {
+  if (!abs.startsWith(resolve(webRoot) + sep) && abs !== resolve(webRoot)) {
     return null;
   }
   try {

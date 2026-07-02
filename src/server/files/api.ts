@@ -16,8 +16,31 @@ export function handleList(res: ServerResponse): void {
   json(res, 200, listFiles());
 }
 
+// The Pi handles one or two 75 MB streams fine; unbounded concurrency would
+// saturate the SD card and CPU, starving the WS broadcast loop.
+const MAX_CONCURRENT_UPLOADS = 2;
+let uploadsInFlight = 0;
+
 // POST /api/files → multipart upload (busboy)
 export async function handleUpload(
+  req: IncomingMessage,
+  res: ServerResponse,
+  broadcastFilesChanged: () => void,
+): Promise<void> {
+  if (uploadsInFlight >= MAX_CONCURRENT_UPLOADS) {
+    req.resume();
+    json(res, 429, { error: "too_many_uploads", max: MAX_CONCURRENT_UPLOADS });
+    return;
+  }
+  uploadsInFlight++;
+  try {
+    await doUpload(req, res, broadcastFilesChanged);
+  } finally {
+    uploadsInFlight--;
+  }
+}
+
+async function doUpload(
   req: IncomingMessage,
   res: ServerResponse,
   broadcastFilesChanged: () => void,
@@ -35,12 +58,14 @@ export async function handleUpload(
   let contentType  = "application/octet-stream";
   let sizeBytes    = 0;
   let aborted      = false;
+  let gotFile      = false;
 
   try {
     const bb = busboy({ headers: req.headers, limits: { files: 1, fileSize: LIMITS.MAX_FILE_BYTES } });
 
     await new Promise<void>((resolve, reject) => {
       bb.on("file", (_field, stream, info) => {
+        gotFile      = true;
         originalName = info.filename || "upload";
         contentType  = info.mimeType || "application/octet-stream";
 
@@ -56,12 +81,20 @@ export async function handleUpload(
         out.on("finish", resolve);
         out.on("error",  reject);
       });
+      // Multipart without a file field: busboy never emits "file", so without
+      // this the promise would hang the request forever.
+      bb.on("close", () => { if (!gotFile) reject(new Error("no_file")); });
       bb.on("error", reject);
+      // req.pipe(bb) does not forward request errors — a client that drops
+      // mid-upload would leave the promise pending and the tmp file orphaned.
+      req.on("aborted", () => reject(new Error("client_aborted")));
+      req.on("error", reject);
       req.pipe(bb);
     });
   } catch (err) {
     if (existsSync(tmp)) unlinkSync(tmp);
     const reason = err instanceof Error ? err.message : "upload_error";
+    if (reason === "client_aborted") { res.destroy(); return; }
     const status = reason === "file_too_large" ? 413 : 400;
     json(res, status, { error: reason, maxBytes: LIMITS.MAX_FILE_BYTES });
     return;
@@ -108,7 +141,14 @@ export function handleDownload(res: ServerResponse, id: string): void {
     "Content-Length":      String(meta.sizeBytes),
     "Cache-Control":       "no-store",
   });
-  createReadStream(filePath).pipe(res);
+  const stream = createReadStream(filePath);
+  // An unhandled "error" on the read stream (file deleted mid-transfer, I/O
+  // fault) would crash the whole process — abort just this response instead.
+  stream.on("error", (err) => {
+    console.error({ operation: "download", id, error: err.message });
+    res.destroy();
+  });
+  stream.pipe(res);
 }
 
 // DELETE /api/files/:id
