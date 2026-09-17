@@ -1,78 +1,71 @@
-# Broadcast Info Display
+# Broadcast Info Display — servidor Docker
 
-> **v0.3.1 — versão Fable 5**
-> Revisão feita com o Claude **Fable 5**: 17 correções de bugs, robustez e hardening
-> sobre a v0.3.0 (janela de chuva, crash no download, backpressure no WebSocket,
-> limites de payload, escritas coalescidas) + redesign das telas de output e controle
-> (densidade automática, tally bars por status, fontes self-hosted). Validada no
-> Raspberry Pi 4 e mergeada na `main` em 2026-07-02.
+> **Variante Docker / x86 (branch `feat/docker-headless-server`)**
+> Fork permanente da v0.3.1 para rodar num PC comum (ex.: Dell Optiplex com Linux Mint)
+> dentro de um container. Sem tela de output e sem kiosk: só o servidor e o painel
+> `/control` acessado pelo browser. Esta branch **não faz merge na `main`**, que continua
+> sendo a versão appliance Raspberry Pi com saída HDMI.
 
-Appliance de display de informações para broadcast ao vivo. Roda num **Raspberry Pi** com saída HDMI para monitor ou matriz de vídeo. Operadores editam pela rede local; a tela atualiza em tempo real.
+Servidor de informações operacionais para broadcast ao vivo. Operadores editam pelo browser
+na rede local, e o estado é transmitido em tempo real via WebSocket para qualquer cliente
+conectado: o próprio painel e consumidores externos.
 
 ```
-Operador (PC/tablet)          Raspberry Pi (HDMI)
-  /control  ──── WebSocket ────  /output
-  edição                         display limpo
+Operador (browser)                    Servidor (Docker)                 Consumidor externo
+  /control  ──── WebSocket ────  estado + telemetria  ──── WebSocket ────  ws://<ip>:8080
 ```
 
 ## Funcionalidades
 
-- **Tabela de câmeras** — até 20 linhas, nomes de colunas editáveis, 5 status (OK / STANDBY / ATENÇÃO / OFF / MANUTENÇÃO)
-- **Imagem overlay** — logo ou watermark posicionável por drag, sincroniza em tempo real
-- **Memo / banner** — nota de texto exibida em ambas as telas
-- **Mini Cloud** — servidor de arquivos local via HTTP (250 MB / 75 MB por arquivo / 15 arquivos)
-- **Relógio grande** — relógio ou cronômetro sobrepostos, escala 100–500%, arrastrável
-- **Telemetria** — faixa com localização, clima (Open-Meteo, sem chave), previsão de chuva e status de internet
-- **Aba Rede** — lê e aplica IP fixo / DHCP do Pi via interface web
+- **Tabela de câmeras**: até 20 linhas, nomes de colunas editáveis, 5 status (OK / STANDBY / ATENÇÃO / OFF / MANUTENÇÃO)
+- **Imagem overlay**: logo ou watermark posicionável por drag, sincroniza em tempo real
+- **Memo / banner**: nota de texto sincronizada entre os clientes
+- **Mini Cloud**: servidor de arquivos local via HTTP (250 MB / 75 MB por arquivo / 15 arquivos)
+- **Relógio grande**: relógio ou cronômetro sobreposto, escala 100–500%, arrastável
+- **Telemetria**: faixa com localização, clima (Open-Meteo, sem chave), previsão de chuva e status de internet
 
 ## Stack
 
-Node.js + TypeScript · WebSocket (`ws`) · Zod · `busboy` · JS puro no browser (sem bundler) · systemd · Chromium kiosk (Wayland/labwc)
+Node.js 22 + TypeScript · WebSocket (`ws`) · Zod · `busboy` · JS puro no browser (sem bundler) · Docker
 
-## Instalação rápida (Pi novo)
+## Rodando com Docker
 
 ```bash
-# No Pi (Raspberry Pi OS Lite Bookworm):
-sudo apt-get update && sudo apt-get install -y git
-git clone https://github.com/otisrib64/broadcast-info-display ~/broadcast-info-display
-cd ~/broadcast-info-display
-sudo bash provisioning/provision.sh
+git clone -b feat/docker-headless-server https://github.com/otisrib64/broadcast-info-display
+cd broadcast-info-display
 
-# Kiosk Wayland/Chromium:
-git clone https://github.com/TOLDOTECHNIK/Raspberry-Pi-Kiosk-Display-System /tmp/kiosk
-cd /tmp/kiosk && sudo bash kiosk_setup.sh
-# URL: http://localhost:8080/output
-
-sudo reboot
+docker build -t broadcast-info-display .
+mkdir -p data
+docker run -d --name broadcast-info-display -p 8080:8080 \
+  -v "$(pwd)/data:/app/data" --user "$(id -u):$(id -g)" \
+  broadcast-info-display
 ```
 
-Após o reboot o Pi sobe direto na tela de output em fullscreen.
-Painel de controle disponível em `http://<ip-do-pi>:8080/control` (ou `http://broadcast-display.local:8080/control`).
+Painel: `http://<ip-da-maquina>:8080/control`
 
-> **Pi 3 (1 GB):** habilite swap antes de provisionar — veja [docs/SETUP.md](docs/SETUP.md#notas-para-raspberry-pi-3-1-gb-ram).
+Parar: `docker stop broadcast-info-display`. Subir de novo: `docker start broadcast-info-display`.
+O container não sobe sozinho no boot, a subida é manual.
 
-## Desenvolvimento local
+Instalação do Docker no Linux Mint, persistência e troubleshooting: [docs/SETUP.md](docs/SETUP.md).
+
+## Atualizar
+
+```bash
+git pull
+docker build -t broadcast-info-display .
+docker rm -f broadcast-info-display
+docker run -d --name broadcast-info-display -p 8080:8080 \
+  -v "$(pwd)/data:/app/data" --user "$(id -u):$(id -g)" \
+  broadcast-info-display
+```
+
+`data/` fica fora da imagem (bind mount). Recriar o container não apaga a tabela nem os arquivos da Mini Cloud.
+
+## Desenvolvimento local (sem Docker)
 
 ```bash
 npm install
 npm run build
 node dist/server/index.js
 # http://localhost:8080/control
-# http://localhost:8080/output
 ```
-
-## Atualizar um Pi instalado
-
-```bash
-ssh pi@<ip-do-pi>
-cd /opt/broadcast-info-display
-sudo systemctl stop broadcast-display
-git pull && npm run build
-sudo systemctl start broadcast-display
-```
-
-`data/state.json` não é versionado — o `git pull` não apaga o estado atual da tabela.
-
-## Documentação completa
-
-[docs/SETUP.md](docs/SETUP.md) — instalação detalhada, Pi 3, troubleshooting, resolução HDMI, estrutura do projeto.

@@ -1,7 +1,7 @@
 {
   "name": "broadcast-info-display",
   "version": "0.3.1",
-  "description": "Raspberry Pi broadcast info display — kiosk HDMI via WebSocket",
+  "description": "Broadcast info display — headless Docker server (WebSocket state broadcast)",
   "type": "module",
   "scripts": {
     "build": "tsc",

@@ -1,145 +1,146 @@
-# Broadcast Info Display — Setup Guide
+# Broadcast Info Display — Setup Guide (Docker)
 
 ## O que é
 
-Appliance de display de informações para broadcast. Roda num **Raspberry Pi** conectado via HDMI
-a um monitor/matriz de vídeo. Operadores editam a tabela de câmeras pela rede local; a tela HDMI
-atualiza em tempo real via WebSocket.
+Servidor de informações operacionais para broadcast, empacotado em Docker para rodar num PC
+comum (ex.: Dell Optiplex com Linux Mint). Operadores editam a tabela pelo browser na rede local,
+e o estado é transmitido em tempo real via WebSocket para todos os clientes conectados.
+
+Esta é a variante **sem tela de output e sem kiosk** (branch `feat/docker-headless-server`).
+A versão appliance Raspberry Pi com saída HDMI continua na `main`.
 
 ### Rotas
 
 | Rota | Quem usa | Descrição |
 |------|----------|-----------|
-| `/control` | Operador (PC/tablet) | Painel de controle — edição completa |
-| `/output`  | Raspberry Pi (HDMI)  | Display limpo — somente leitura |
-| `/`        | —                    | Redireciona para `/control` |
+| `/control`         | Operador (browser)  | Painel de controle, edição completa |
+| `/api/files`       | Painel (Mini Cloud) | Upload, listagem, download e exclusão de arquivos |
+| `ws://<ip>:8080`   | Painel e consumidores externos | Estado + telemetria em tempo real |
+| `/`                | —                   | Redireciona para `/control` |
 
 ---
 
-## Desenvolvimento local (Windows/Mac/Linux)
+## Instalar Docker no Linux Mint
+
+Use o repositório oficial da Docker para Ubuntu. O Mint é baseado em Ubuntu, mas o
+`VERSION_CODENAME` dele é o nome do Mint (ex.: `wilma`), que não existe no repo da Docker.
+Por isso o comando abaixo usa o **`UBUNTU_CODENAME`** do `/etc/os-release`.
 
 ```bash
-npm install
-npm run build
-node dist/server/index.js
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl git
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$UBUNTU_CODENAME") stable" \
+  | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin
+
+# Rodar docker sem sudo (vale depois de sair e entrar de novo na sessão)
+sudo usermod -aG docker $USER
 ```
 
-- Controle: http://localhost:8080/control
-- Output:   http://localhost:8080/output
+Conferir: `docker run --rm hello-world`.
+
+> **LMDE** (Linux Mint Debian Edition) não é baseado em Ubuntu: nesse caso use o repo
+> `https://download.docker.com/linux/debian` com o codinome Debian (`DEBIAN_CODENAME`).
 
 ---
 
-## Instalação num Raspberry Pi novo
-
-### 1. Gravar o cartão SD
-
-Gravar **Raspberry Pi OS Lite (Bookworm)** via Raspberry Pi Imager.
-No Imager já configure: hostname, usuário `pi`, SSH habilitado, Wi-Fi/rede.
-
-> **Pinar a versão:** anotar a versão exata usada. Não atualizar o OS sem teste + OK explícito.
-
-### 2. Primeiro boot — SSH e hostname
+## Rodando com Docker
 
 ```bash
-ssh pi@<ip-do-pi>
-sudo hostnamectl set-hostname broadcast-display
+git clone -b feat/docker-headless-server https://github.com/otisrib64/broadcast-info-display
+cd broadcast-info-display
+
+docker build -t broadcast-info-display .
+
+mkdir -p data
+docker run -d --name broadcast-info-display -p 8080:8080 \
+  -v "$(pwd)/data:/app/data" --user "$(id -u):$(id -g)" \
+  broadcast-info-display
 ```
 
-Com avahi-daemon (já instalado no Pi OS), o painel fica disponível em:
-`http://broadcast-display.local:8080/control`
+Painel: `http://<ip-da-maquina>:8080/control`
 
-### 3. Clonar o repositório
+| Ação | Comando |
+|------|---------|
+| Parar | `docker stop broadcast-info-display` |
+| Subir de novo | `docker start broadcast-info-display` |
+| Ver logs | `docker logs -f broadcast-info-display` |
+| Status | `docker ps -a --filter name=broadcast-info-display` |
 
-O repo é público — não precisa de autenticação:
+A subida é **manual**: o container não inicia sozinho no boot. O `docker stop` manda SIGTERM
+e o servidor grava a última edição pendente do `state.json` antes de sair.
 
-```bash
-sudo apt-get update && sudo apt-get install -y git
-git clone https://github.com/otisrib64/broadcast-info-display ~/broadcast-info-display
-cd ~/broadcast-info-display
-```
-
-### 4. Provisionar
-
-```bash
-sudo bash provisioning/provision.sh
-```
-
-O script faz automaticamente:
-
-1. Instala Node.js LTS via nodesource
-2. Copia o app para `/opt/broadcast-info-display`
-3. Instala dependências (`npm ci`), compila (`tsc`), remove devDeps (`npm prune`)
-4. Instala e habilita o serviço systemd `broadcast-display` (inicia no boot, restart automático)
-5. Garante permissão de escrita em `data/` para o usuário `pi`
-6. Desabilita atualizações automáticas (`apt-daily`, `unattended-upgrades`)
-7. Trava a versão do Chromium (`apt-mark hold`)
-8. Desabilita blanking de tela / DPMS (Wayland idle + Xorg fallback)
-9. Instala policy do Chromium para desativar barra de tradução
-
-### 5. Instalar o kiosk (Wayland/labwc/Chromium fullscreen)
+### Atualizar
 
 ```bash
-git clone https://github.com/TOLDOTECHNIK/Raspberry-Pi-Kiosk-Display-System /tmp/kiosk
-cd /tmp/kiosk && sudo bash kiosk_setup.sh
-```
-
-Quando pedir a URL, digitar: **`http://localhost:8080/output`**
-
-### 6. Reboot
-
-```bash
-sudo reboot
-```
-
-O Pi deve iniciar direto no `/output` fullscreen — sem cursor, sem barra de sistema.
-
----
-
-## Notas para Raspberry Pi 3 (1 GB RAM)
-
-O Pi 3 roda o projeto, mas com margem menor de memória (Node + Chromium somam ~500 MB).
-
-**Recomendações obrigatórias:**
-
-```bash
-# Habilitar swap (evita OOM)
-sudo dphys-swapfile swapoff
-sudo nano /etc/dphys-swapfile   # CONF_SWAPSIZE=512
-sudo dphys-swapfile setup && sudo dphys-swapfile swapon
-```
-
-**Build no Pi 3 é lento** (tsc no ARMv7 + SD card). Alternativa: buildar no PC e copiar o `dist/`:
-
-```bash
-# No PC:
-npm run build
-scp -r dist/ pi@<ip-do-pi>:/opt/broadcast-info-display/
-
-# No Pi (não precisa do tsc):
-cd /opt/broadcast-info-display
-npm ci --omit=dev
-sudo systemctl restart broadcast-display
-```
-
----
-
-## Atualizar um Pi já instalado
-
-```bash
-ssh pi@<ip-do-pi>
-cd /opt/broadcast-info-display
-sudo systemctl stop broadcast-display
 git pull
-npm run build
-sudo systemctl start broadcast-display
+docker build -t broadcast-info-display .
+docker rm -f broadcast-info-display
+docker run -d --name broadcast-info-display -p 8080:8080 \
+  -v "$(pwd)/data:/app/data" --user "$(id -u):$(id -g)" \
+  broadcast-info-display
 ```
 
-`data/state.json` é ignorado pelo git — o `git pull` **não apaga** o estado atual da tabela.
-Recarregue o kiosk (ou `sudo reboot`) para o Chromium pegar a nova UI.
+### Persistência de dados
+
+Tudo que precisa sobreviver fica em `data/` no host, montado em `/app/data` no container:
+
+- `data/state.json`: tabela, colunas, memo, overlay, relógio
+- `data/files/`: arquivos da Mini Cloud
+
+Recriar o container ou a imagem não apaga nada. Para zerar o estado, pare o container e apague `data/`.
+
+- **`mkdir -p data` antes do primeiro `docker run`**: se a pasta não existir, o Docker cria como
+  `root` e o servidor não consegue gravar.
+- **`--user "$(id -u):$(id -g)"`**: o processo roda com o seu usuário, então os arquivos criados
+  em `data/` ficam com o seu dono e você edita ou apaga sem `sudo`.
+
+### Trocar porta ou localização
+
+A porta de dentro do container fica em 8080. Para usar outra no host, troque só o lado esquerdo
+do `-p`, por exemplo `-p 9000:8080`.
+
+| Variável   | Padrão | Descrição |
+|------------|--------|-----------|
+| `BID_LAT`  | —      | Latitude fixa (override da geolocalização por IP) |
+| `BID_LON`  | —      | Longitude fixa (idem) |
+| `BID_CITY` | —      | Nome da cidade exibido na faixa de telemetria |
+
+As três variáveis `BID_*` devem ser definidas juntas para o override valer. Passe com `-e` no `docker run`:
+
+```bash
+docker run -d --name broadcast-info-display -p 8080:8080 \
+  -v "$(pwd)/data:/app/data" --user "$(id -u):$(id -g)" \
+  -e BID_LAT=-23.55 -e BID_LON=-46.63 -e BID_CITY="São Paulo" \
+  broadcast-info-display
+```
 
 ---
 
-## Funcionalidades (v0.3.0)
+## Consumindo o estado via WebSocket
+
+Qualquer cliente pode abrir `ws://<ip-da-maquina>:8080` e receber o mesmo fluxo que o painel.
+Na conexão chegam um `state` e um `telemetry`, e depois uma mensagem a cada mudança:
+
+| Mensagem | Quando |
+|----------|--------|
+| `{ "type": "state", "state": { ... } }` | Na conexão e a cada edição de qualquer cliente |
+| `{ "type": "telemetry", "telemetry": { ... } }` | Na conexão e a cada atualização de clima/localização/internet |
+| `{ "type": "filesChanged" }` | Upload ou exclusão na Mini Cloud |
+
+Os schemas completos (`State`, `Row`, `Telemetry`) estão em `src/shared/types.ts`. Um consumidor
+só de leitura pode ignorar tudo que não seja `state`.
+
+---
+
+## Funcionalidades
 
 ### Tabela de câmeras
 - Até **20 linhas**, adicionadas pelo botão `+ Linha`
@@ -150,19 +151,18 @@ Recarregue o kiosk (ou `sudo reboot`) para o Chromium pegar a nova UI.
 ### Imagem overlay
 - Aba **Imagem** no painel de controle
 - Upload de imagem (PNG/JPG, limite 3 MB) posicionável via drag ou sliders
-- Aparece sobre a tabela no output HDMI
-- Sincroniza em tempo real via WebSocket
+- Sincroniza em tempo real com todos os clientes WebSocket
 
 ### Notas / Memo
-- Aba **Notas** — texto livre exibido como banner em ambas as telas
+- Aba **Notas**: texto livre exibido como banner
 
 ### Mini Cloud
-- Aba **Mini Cloud** — servidor de arquivos local via HTTP (não usa WebSocket)
+- Aba **Mini Cloud**: servidor de arquivos local via HTTP (não usa WebSocket)
 - Limites: 75 MB por arquivo · 250 MB total · 15 arquivos máx
 - Upload por drag-and-drop ou seleção · Download · Exclusão
 
 ### Relógio grande
-- Aba **Relógio** — relógio ou cronômetro sobrepostos à tabela
+- Aba **Relógio**: relógio ou cronômetro sobreposto à tabela
 - Escala configurável (100%–500%), posicionável por drag
 
 ### Telemetria (faixa superior)
@@ -170,33 +170,15 @@ Recarregue o kiosk (ou `sudo reboot`) para o Chromium pegar a nova UI.
 - **Clima**: temperatura + condição via Open-Meteo (sem chave)
 - **Previsão**: chuva nas próximas horas
 - **Internet**: status online/offline com tempo desde a última queda
-- Atualiza automaticamente; degrada para "último valor" se offline
-
-### Rede (aba Rede — apenas no controle)
-- Lê IP/gateway/DNS atual do Pi
-- Permite mudar para IP fixo ou DHCP via modal de confirmação
-
----
-
-## Variáveis de ambiente
-
-| Variável   | Padrão | Descrição |
-|------------|--------|-----------|
-| `PORT`     | `8080` | Porta do servidor HTTP/WS |
-| `BID_LAT`  | —      | Latitude fixa (override da geolocalização por IP) |
-| `BID_LON`  | —      | Longitude fixa (idem) |
-| `BID_CITY` | —      | Nome da cidade exibido na faixa de telemetria |
-
-A porta pode ser alterada no serviço systemd em `provisioning/broadcast-display.service`.
-As três variáveis `BID_*` devem ser definidas juntas para o override valer.
+- Atualiza automaticamente e mantém o último valor se ficar offline
 
 ---
 
 ## Modelo de segurança
 
-O appliance assume **LAN de confiança**: qualquer máquina na rede que alcance a porta 8080
-pode editar a tabela, trocar a imagem e reconfigurar o IP do Pi. Não há autenticação — é uma
-decisão de design (operação de broadcast em rede fechada), não um esquecimento.
+O servidor assume **LAN de confiança**: qualquer máquina na rede que alcance a porta 8080
+pode editar a tabela e trocar a imagem. Não há autenticação: é uma decisão de design
+(operação de broadcast em rede fechada), não um esquecimento.
 
 Defesas em profundidade que existem mesmo assim:
 
@@ -206,73 +188,37 @@ Defesas em profundidade que existem mesmo assim:
 - Uploads: máx. 2 simultâneos, 75 MB/arquivo, 250 MB total, 15 arquivos; download força
   `application/octet-stream` (nada renderiza no browser); IDs com guard de path traversal.
 - O painel só aceita `data:image/` como overlay — URL remota é ignorada.
+- O container roda como usuário não-root e sem acesso à rede do host (bridge padrão).
 
-**Não exponha a porta 8080 à internet.** Se a rede não for confiável, feche a porta no
-firewall e acesse o controle por VPN/túnel SSH.
-
----
-
-## Porta e resolução HDMI
-
-**Porta padrão: 8080** (evita conflito com Docker na 3000).
-
-Resolução HDMI padrão: **1920×1080@60**. Para ajustar edite `/boot/firmware/config.txt`:
-
-```
-hdmi_group=1
-hdmi_mode=16   # 1080p60
-# hdmi_mode=31  # 1080p50
-# hdmi_mode=5   # 1080i60 (broadcast interlaced)
-```
+**Não exponha a porta 8080 à internet.** Atenção: a porta publicada pelo Docker **passa por fora
+do `ufw`**, então uma regra de firewall do Mint não bloqueia ela. Para limitar a escuta a uma
+interface específica, publique com o IP dela: `-p 192.168.x.x:8080:8080`. Se a rede não for
+confiável, acesse o painel por VPN ou túnel SSH.
 
 ---
 
 ## Troubleshooting
 
-### Barra de tradução no HDMI
+### Painel não abre de outra máquina
 
-Resolvida automaticamente pelo `provision.sh` (policy do Chromium). Em Pi provisionado antes:
+1. Container de pé: `docker ps --filter name=broadcast-info-display`
+2. Porta publicada: a coluna `PORTS` deve mostrar `0.0.0.0:8080->8080/tcp`
+3. Na própria máquina: `curl -I http://localhost:8080/control` → `200`
+4. Logs: `docker logs -f broadcast-info-display` → procurar `ws.connect` ao abrir o painel
 
-```bash
-cd /opt/broadcast-info-display
-sudo mkdir -p /etc/chromium/policies/managed /etc/chromium-browser/policies/managed
-sudo cp provisioning/chromium-policy.json /etc/chromium/policies/managed/broadcast-kiosk.json
-sudo cp provisioning/chromium-policy.json /etc/chromium-browser/policies/managed/broadcast-kiosk.json
-sudo reboot
-```
+### Container sai logo depois de subir (EACCES em data/)
 
-### Output mostra /control em vez de /output no HDMI
+A pasta `data/` foi criada pelo Docker como `root`. Corrija o dono e suba de novo:
 
 ```bash
-# Verificar e corrigir o autostart do kiosk:
-cat ~/.config/labwc/autostart
-# Deve ter: ...http://localhost:8080/output
-# Se tiver só http://localhost:8080, corrigir:
-sed -i 's|http://localhost:8080$|http://localhost:8080/output|' ~/.config/labwc/autostart
-sudo reboot
+sudo chown -R "$(id -u):$(id -g)" data
+docker start broadcast-info-display
 ```
 
-### Edição no PC não reflete no Pi
+### Telemetria vazia (sem cidade/clima)
 
-1. Servidor escuta em `0.0.0.0`: `sudo ss -ltnp | grep 8080`
-2. PC alcança o Pi: abrir `http://broadcast-display.local:8080/control`
-3. Logs do serviço: `journalctl -u broadcast-display -f`
-   → procurar `ws.connect` com `clients: 2`
-
-### Serviço não inicia (EACCES em data/)
-
-```bash
-sudo chown -R pi:pi /opt/broadcast-info-display/data
-sudo systemctl restart broadcast-display
-```
-
----
-
-## Fluxo de sinal
-
-```
-Raspberry Pi (HDMI) → conversor HDMI-SDI (opcional) → matriz de vídeo → monitores/câmeras
-```
+O container precisa de saída para a internet (`api.open-meteo.com`, `ipapi.co`, `ipinfo.io`).
+Se a rede bloqueia, defina `BID_LAT`/`BID_LON`/`BID_CITY` para pelo menos fixar a localização.
 
 ---
 
@@ -288,7 +234,6 @@ src/
     static.ts              # Servidor de arquivos estáticos com guard traversal
     telemetry/             # Clima, localização, internet (Open-Meteo, ip-api)
     files/                 # Mini Cloud: store, api HTTP (busboy)
-    network/               # Leitura e aplicação de config de rede (nmcli)
   web/
     shared/
       base.css             # Design system comum (tokens, layout, status)
@@ -296,14 +241,11 @@ src/
       render.js            # Critical strip, memo banner, legenda, badges
       clock.js             # Relógio/cronômetro, drag
     control/               # Painel de controle (/control)
-    output/                # Display HDMI (/output)
 data/
   state.json               # Estado persistido (não versionado)
   files/                   # Arquivos da Mini Cloud (não versionados)
-provisioning/
-  provision.sh             # Script de instalação completa no Pi
-  broadcast-display.service # Unit systemd
-  chromium-policy.json     # Desativa tradução no Chromium
+Dockerfile                 # Build multi-stage (node:22-slim), roda como usuário node
+.dockerignore
 docs/
   SETUP.md                 # Este arquivo
 ```
