@@ -76,17 +76,8 @@ const httpServer = createServer((req, res) => {
     if (serveFile(res, WEB_DIR, "control/index.html")) return;
   }
 
-  // Route: /output → output/index.html
-  if (urlPath === "/output") {
-    if (serveFile(res, WEB_DIR, "output/index.html")) return;
-  }
-
-  // Static assets under /shared/, /control/, /output/
-  if (
-    urlPath.startsWith("/shared/") ||
-    urlPath.startsWith("/control/") ||
-    urlPath.startsWith("/output/")
-  ) {
+  // Static assets under /shared/, /control/
+  if (urlPath.startsWith("/shared/") || urlPath.startsWith("/control/")) {
     // Strip leading slash for resolveStatic
     const rel = urlPath.slice(1);
     if (serveFile(res, WEB_DIR, rel)) return;
