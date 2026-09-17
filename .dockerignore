@@ -1,0 +1,14 @@
+node_modules
+dist
+data
+.git
+.gitignore
+.gitattributes
+docs
+erros
+referencias
+*.md
+*.log
+tsconfig.tsbuildinfo
+Dockerfile
+.dockerignore
