@@ -1,251 +1,175 @@
-# Broadcast Info Display — Setup Guide (Docker)
+# Instalação e operação
 
-## O que é
+Este guia cobre o servidor Docker, o acesso por LAN e a abertura opcional da tela Output em um segundo monitor Linux. O container só fornece HTTP/WebSocket; não controla o monitor nem inicia o navegador. Essa parte roda na sessão gráfica do computador.
 
-Servidor de informações operacionais para broadcast, empacotado em Docker para rodar num PC
-comum (ex.: Dell Optiplex com Linux Mint). Operadores editam a tabela pelo browser na rede local,
-e o estado é transmitido em tempo real via WebSocket para todos os clientes conectados.
+## Requisitos
 
-Esta é a variante **sem tela de output e sem kiosk** (branch `feat/docker-headless-server`).
-A versão appliance Raspberry Pi com saída HDMI continua na `main`.
+- Linux Mint baseado em Ubuntu ou Ubuntu x86-64.
+- Rede local entre o servidor e os computadores clientes.
+- Acesso administrativo para instalar o Docker.
+- Para autostart do Output: Cinnamon/X11, Firefox, segundo monitor ativo e ferramentas X11.
 
-### Rotas
+LMDE usa base Debian; consulte a documentação de instalação Docker apropriada para Debian em vez de assumir codinome Ubuntu.
 
-| Rota | Quem usa | Descrição |
-|------|----------|-----------|
-| `/control`         | Operador (browser)  | Painel de controle, edição completa |
-| `/api/files`       | Painel (Mini Cloud) | Upload, listagem, download e exclusão de arquivos |
-| `ws://<ip>:8080`   | Painel e consumidores externos | Estado + telemetria em tempo real |
-| `/`                | —                   | Redireciona para `/control` |
+## Instalar e reverter o Docker
 
----
-
-## Instalar Docker no Linux Mint
-
-Use o repositório oficial da Docker para Ubuntu. O Mint é baseado em Ubuntu, mas o
-`VERSION_CODENAME` dele é o nome do Mint (ex.: `wilma`), que não existe no repo da Docker.
-Por isso o comando abaixo usa o **`UBUNTU_CODENAME`** do `/etc/os-release`.
+No checkout da branch Docker:
 
 ```bash
-sudo apt-get update
-sudo apt-get install -y ca-certificates curl git
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-sudo chmod a+r /etc/apt/keyrings/docker.asc
-
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
-https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$UBUNTU_CODENAME") stable" \
-  | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin
-
-# Rodar docker sem sudo (vale depois de sair e entrar de novo na sessão)
-sudo usermod -aG docker $USER
+./scripts/instalar-docker.sh
 ```
 
-Conferir: `docker run --rm hello-world`.
+O script usa os pacotes do repositório Ubuntu habilitado no Mint: `docker.io` e `docker-compose-v2`. Ele atualiza os índices, instala os pacotes, habilita o serviço `docker` no boot e adiciona o usuário atual ao grupo `docker`. O último passo só vale após sair e entrar na sessão.
 
-> **LMDE** (Linux Mint Debian Edition) não é baseado em Ubuntu: nesse caso use o repo
-> `https://download.docker.com/linux/debian` com o codinome Debian (`DEBIAN_CODENAME`).
-
----
-
-## Rodando com Docker
+Valide:
 
 ```bash
-git clone -b feat/docker-headless-server https://github.com/otisrib64/broadcast-info-display
-cd broadcast-info-display
-
-docker build -t broadcast-info-display .
-
-mkdir -p data
-docker run -d --name broadcast-info-display -p 8080:8080 \
-  -v "$(pwd)/data:/app/data" --user "$(id -u):$(id -g)" \
-  broadcast-info-display
+docker run --rm hello-world
+docker compose version
+systemctl is-enabled docker
 ```
 
-Painel: `http://<ip-da-maquina>:8080/control`
-
-| Ação | Comando |
-|------|---------|
-| Parar | `docker stop broadcast-info-display` |
-| Subir de novo | `docker start broadcast-info-display` |
-| Ver logs | `docker logs -f broadcast-info-display` |
-| Status | `docker ps -a --filter name=broadcast-info-display` |
-
-A subida é **manual**: o container não inicia sozinho no boot. O `docker stop` manda SIGTERM
-e o servidor grava a última edição pendente do `state.json` antes de sair.
-
-### Atualizar
+Para reverter o funcionamento do projeto sem remover dados:
 
 ```bash
-git pull
-docker build -t broadcast-info-display .
-docker rm -f broadcast-info-display
-docker run -d --name broadcast-info-display -p 8080:8080 \
-  -v "$(pwd)/data:/app/data" --user "$(id -u):$(id -g)" \
-  broadcast-info-display
+docker compose down
 ```
 
-### Persistência de dados
-
-Tudo que precisa sobreviver fica em `data/` no host, montado em `/app/data` no container:
-
-- `data/state.json`: tabela, colunas, memo, overlay, relógio
-- `data/files/`: arquivos da Mini Cloud
-
-Recriar o container ou a imagem não apaga nada. Para zerar o estado, pare o container e apague `data/`.
-
-- **`mkdir -p data` antes do primeiro `docker run`**: se a pasta não existir, o Docker cria como
-  `root` e o servidor não consegue gravar.
-- **`--user "$(id -u):$(id -g)"`**: o processo roda com o seu usuário, então os arquivos criados
-  em `data/` ficam com o seu dono e você edita ou apaga sem `sudo`.
-
-### Trocar porta ou localização
-
-A porta de dentro do container fica em 8080. Para usar outra no host, troque só o lado esquerdo
-do `-p`, por exemplo `-p 9000:8080`.
-
-| Variável   | Padrão | Descrição |
-|------------|--------|-----------|
-| `BID_LAT`  | —      | Latitude fixa (override da geolocalização por IP) |
-| `BID_LON`  | —      | Longitude fixa (idem) |
-| `BID_CITY` | —      | Nome da cidade exibido na faixa de telemetria |
-
-As três variáveis `BID_*` devem ser definidas juntas para o override valer. Passe com `-e` no `docker run`:
+Para parar também o daemon Docker até ser iniciado manualmente:
 
 ```bash
-docker run -d --name broadcast-info-display -p 8080:8080 \
-  -v "$(pwd)/data:/app/data" --user "$(id -u):$(id -g)" \
-  -e BID_LAT=-23.55 -e BID_LON=-46.63 -e BID_CITY="São Paulo" \
-  broadcast-info-display
+sudo systemctl disable --now docker
 ```
 
----
+Não é necessário desinstalar os pacotes Docker para reverter este projeto. Outros containers e imagens existentes pertencem ao host e não devem ser removidos como parte da reversão.
 
-## Consumindo o estado via WebSocket
-
-Qualquer cliente pode abrir `ws://<ip-da-maquina>:8080` e receber o mesmo fluxo que o painel.
-Na conexão chegam um `state` e um `telemetry`, e depois uma mensagem a cada mudança:
-
-| Mensagem | Quando |
-|----------|--------|
-| `{ "type": "state", "state": { ... } }` | Na conexão e a cada edição de qualquer cliente |
-| `{ "type": "telemetry", "telemetry": { ... } }` | Na conexão e a cada atualização de clima/localização/internet |
-| `{ "type": "filesChanged" }` | Upload ou exclusão na Mini Cloud |
-
-Os schemas completos (`State`, `Row`, `Telemetry`) estão em `src/shared/types.ts`. Um consumidor
-só de leitura pode ignorar tudo que não seja `state`.
-
----
-
-## Funcionalidades
-
-### Tabela de câmeras
-- Até **20 linhas**, adicionadas pelo botão `+ Linha`
-- 5 status: **OK** · **STANDBY** · **ATENÇÃO** · **OFF** · **MANUTENÇÃO**
-- Nomes de colunas editáveis (clica no cabeçalho)
-- Autocomplete nas colunas Modelo (FS1/FS2/FS4/FA/Teranex) e Fonte (SDI/HDMI/Fiber)
-
-### Imagem overlay
-- Aba **Imagem** no painel de controle
-- Upload de imagem (PNG/JPG, limite 3 MB) posicionável via drag ou sliders
-- Sincroniza em tempo real com todos os clientes WebSocket
-
-### Notas / Memo
-- Aba **Notas**: texto livre exibido como banner
-
-### Mini Cloud
-- Aba **Mini Cloud**: servidor de arquivos local via HTTP (não usa WebSocket)
-- Limites: 75 MB por arquivo · 250 MB total · 15 arquivos máx
-- Upload por drag-and-drop ou seleção · Download · Exclusão
-
-### Relógio grande
-- Aba **Relógio**: relógio ou cronômetro sobreposto à tabela
-- Escala configurável (100%–500%), posicionável por drag
-
-### Telemetria (faixa superior)
-- **Localização**: cidade/região detectada por IP (sem chave de API)
-- **Clima**: temperatura + condição via Open-Meteo (sem chave)
-- **Previsão**: chuva nas próximas horas
-- **Internet**: status online/offline com tempo desde a última queda
-- Atualiza automaticamente e mantém o último valor se ficar offline
-
----
-
-## Modelo de segurança
-
-O servidor assume **LAN de confiança**: qualquer máquina na rede que alcance a porta 8080
-pode editar a tabela e trocar a imagem. Não há autenticação: é uma decisão de design
-(operação de broadcast em rede fechada), não um esquecimento.
-
-Defesas em profundidade que existem mesmo assim:
-
-- Toda mensagem WS é validada por schema Zod (shape, enums, limites de tamanho por campo);
-  chaves desconhecidas são descartadas. `setState` substitui o estado inteiro por design.
-- Frames WS limitados a 5 MB; clientes lentos são pulados no broadcast (sem OOM).
-- Uploads: máx. 2 simultâneos, 75 MB/arquivo, 250 MB total, 15 arquivos; download força
-  `application/octet-stream` (nada renderiza no browser); IDs com guard de path traversal.
-- O painel só aceita `data:image/` como overlay — URL remota é ignorada.
-- O container roda como usuário não-root e sem acesso à rede do host (bridge padrão).
-
-**Não exponha a porta 8080 à internet.** Atenção: a porta publicada pelo Docker **passa por fora
-do `ufw`**, então uma regra de firewall do Mint não bloqueia ela. Para limitar a escuta a uma
-interface específica, publique com o IP dela: `-p 192.168.x.x:8080:8080`. Se a rede não for
-confiável, acesse o painel por VPN ou túnel SSH.
-
----
-
-## Troubleshooting
-
-### Painel não abre de outra máquina
-
-1. Container de pé: `docker ps --filter name=broadcast-info-display`
-2. Porta publicada: a coluna `PORTS` deve mostrar `0.0.0.0:8080->8080/tcp`
-3. Na própria máquina: `curl -I http://localhost:8080/control` → `200`
-4. Logs: `docker logs -f broadcast-info-display` → procurar `ws.connect` ao abrir o painel
-
-### Container sai logo depois de subir (EACCES em data/)
-
-A pasta `data/` foi criada pelo Docker como `root`. Corrija o dono e suba de novo:
+## Iniciar e validar
 
 ```bash
-sudo chown -R "$(id -u):$(id -g)" data
-docker start broadcast-info-display
+./scripts/iniciar.sh
+docker compose ps
+curl -I http://localhost:8080/control
+curl -I http://localhost:8080/output
 ```
 
-### Telemetria vazia (sem cidade/clima)
+As duas rotas devem retornar `HTTP 200`. O Compose usa o nome fixo `broadcast-info-display`, constrói a imagem local, publica `8080:8080`, monta `./data:/app/data`, executa como `node` e aplica `restart: unless-stopped`. `--remove-orphans` remove containers órfãos do mesmo projeto Compose ao subir.
 
-O container precisa de saída para a internet (`api.open-meteo.com`, `ipapi.co`, `ipinfo.io`).
-Se a rede bloqueia, defina `BID_LAT`/`BID_LON`/`BID_CITY` para pelo menos fixar a localização.
+O serviço Docker inicia no boot do sistema. O container reinicia automaticamente após boot ou falha, exceto quando foi parado intencionalmente com `docker compose stop/down`.
 
----
+## Acesso local e pela rede
 
-## Estrutura do projeto
+No host:
 
+- Controle: `http://localhost:8080/control`
+- Output: `http://localhost:8080/output`
+
+Em outro computador, use o endereço IPv4 do host Docker, nunca `localhost`:
+
+```bash
+ip -brief -4 address
 ```
-src/
-  shared/types.ts          # Schemas zod (State, Row, Status, FileMeta…)
-  server/
-    index.ts               # HTTP + WebSocket, roteamento
-    state.ts               # Persistência em data/state.json (atomic write)
-    protocol.ts            # Parse/apply/broadcast de mensagens WS
-    static.ts              # Servidor de arquivos estáticos com guard traversal
-    telemetry/             # Clima, localização, internet (Open-Meteo, ip-api)
-    files/                 # Mini Cloud: store, api HTTP (busboy)
-  web/
-    shared/
-      base.css             # Design system comum (tokens, layout, status)
-      ws-client.js         # WebSocket com reconnect/backoff
-      render.js            # Critical strip, memo banner, legenda, badges
-      clock.js             # Relógio/cronômetro, drag
-    control/               # Painel de controle (/control)
-data/
-  state.json               # Estado persistido (não versionado)
-  files/                   # Arquivos da Mini Cloud (não versionados)
-Dockerfile                 # Build multi-stage (node:22-slim), roda como usuário node
-.dockerignore
-docs/
-  SETUP.md                 # Este arquivo
+
+Escolha o IPv4 da interface física conectada à LAN, ignorando `docker0` e `br-...`. Por exemplo, se o IP na rede compartilhada for `192.168.10.63`:
+
+- `http://192.168.10.63:8080/control`
+- `http://192.168.10.63:8080/output`
+
+Todos os navegadores conectam o WebSocket usando o host da URL, então a sincronização segue o mesmo endereço e porta. Se o IP responder no próprio host mas não num cliente, confirme que ambos estão na mesma sub-rede/VLAN, que o Wi-Fi não usa isolamento de clientes e que o roteador permite comunicação entre eles.
+
+O Compose publica em todas as interfaces (`0.0.0.0:8080` e IPv6). Use uma rede confiável. O servidor não tem autenticação, e publicação de portas Docker pode não obedecer às regras habituais do UFW. Não exponha a porta diretamente à internet.
+
+## Output em segundo monitor
+
+O Output é uma página web somente leitura em `/output`; não é uma tela ligada ao container. No Mint/Cinnamon, o script do host abre um Firefox dedicado, espera o servidor ficar disponível, posiciona a janela no HDMI configurado e envia F11 via XTest. O perfil separado mantém configurações e janela do Output independentes do Firefox usado para o controle.
+
+Instale os utilitários do host, se faltarem:
+
+```bash
+sudo apt-get install -y x11-xserver-utils wmctrl libxtst6
 ```
+
+Ative o autostart do usuário:
+
+```bash
+./scripts/configurar-output-autostart.sh enable
+~/.local/bin/start-broadcast-output.sh
+```
+
+Por padrão, o monitor alvo é `HDMI-2`. Para escolher outro conector nesta máquina, execute com o nome mostrado por `xrandr --query`:
+
+```bash
+BID_OUTPUT_MONITOR=HDMI-1 ~/.local/bin/start-broadcast-output.sh
+```
+
+O valor pode ser colocado na variável `BID_OUTPUT_MONITOR` dentro do script instalado se o autostart precisar de outro conector.
+
+Desative somente essa parte:
+
+```bash
+./scripts/configurar-output-autostart.sh disable
+```
+
+Esse comando para `broadcast-info-display-browser.service` do usuário e remove os arquivos de autostart e launcher instalados pelo script. Não para Docker nem apaga `data/`.
+
+## Persistência, atualização e backup
+
+`data/state.json` guarda a tabela, colunas, memo, overlay e relógio. `data/files/` guarda os arquivos da Mini Cloud. O bind mount em `./data` mantém tudo quando o container ou a imagem são reconstruídos. Todo o diretório `data/` é excluído do Git e do build Docker.
+
+Atualize e recrie com:
+
+```bash
+git pull --ff-only
+docker compose up -d --build --remove-orphans
+```
+
+Faça cópia de segurança de `data/` em outro local. Para restaurar, pare o serviço, restaure a pasta e inicie novamente. Não inclua `data/` em commits.
+
+## Comandos úteis
+
+```bash
+docker compose ps
+docker compose logs -f
+docker compose restart
+docker compose stop
+docker compose start
+docker compose down
+docker compose down --rmi local
+```
+
+`down` remove container e rede do projeto, mas mantém a pasta bind mount `data/`. `down --rmi local` também remove a imagem criada localmente. Para voltar, execute `./scripts/iniciar.sh`.
+
+## Localização da telemetria
+
+As variáveis `BID_LAT`, `BID_LON` e `BID_CITY` precisam ser informadas juntas para substituir a localização detectada pelo IP. Configure-as em `compose.yaml` sob `environment`, depois recrie o container. A consulta de clima usa Open-Meteo; a detecção da localização requer saída de rede.
+
+## Diagnóstico
+
+### Serviço não responde
+
+```bash
+docker compose ps
+docker compose logs --tail=100
+curl -I http://localhost:8080/control
+```
+
+Confirme que a coluna PORTS contém `0.0.0.0:8080->8080/tcp`. Se a porta estiver ocupada, altere o lado esquerdo do mapeamento, por exemplo `9000:8080`.
+
+### Outro computador não conecta
+
+Use o IPv4 do host em vez de `localhost`; confirme sub-rede, VLAN e isolamento de clientes no Wi-Fi. Teste primeiro a página e depois veja os logs: uma conexão bem-sucedida aparece como `ws.connect`.
+
+### Erro de escrita em data
+
+O container usa UID 1000 (usuário `node`). Em hosts onde o usuário local não seja UID 1000, ajuste a propriedade da pasta ao UID usado pelo container ou configure o serviço para usar o UID/GID local:
+
+```bash
+sudo chown -R 1000:1000 data
+```
+
+### Output não abre no segundo monitor
+
+Confirme que o servidor responde em `/output`, o monitor está conectado e o nome do conector coincide com `xrandr --query`. Verifique a execução do Firefox em `journalctl --user -u broadcast-info-display-browser.service`. A unidade de usuário e o autostart gráfico só existem depois do login Cinnamon.
+
+### Telemetria sem cidade ou clima
+
+Confirme que o container tem saída para internet. Se a política de rede bloquear a geolocalização, fixe `BID_LAT`, `BID_LON` e `BID_CITY`.

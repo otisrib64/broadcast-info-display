@@ -1,0 +1,15 @@
+services:
+  broadcast-info-display:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: broadcast-info-display:local
+    container_name: broadcast-info-display
+    ports:
+      - "8080:8080"
+    user: node
+    volumes:
+      - ./data:/app/data
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped

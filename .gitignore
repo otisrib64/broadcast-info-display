@@ -3,8 +3,8 @@ dist/
 *.js.map
 *.tsbuildinfo
 
-# Runtime state — written by the app on the Pi; must survive git updates.
-data/state.json
+# Runtime data — state and uploaded Mini Cloud files stay local and survive updates.
+/data/
 
 # Local reference material (screenshots etc.), not part of the app.
 referencias/
