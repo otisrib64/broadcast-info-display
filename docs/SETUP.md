@@ -84,7 +84,7 @@ O Compose publica em todas as interfaces (`0.0.0.0:8080` e IPv6). Use uma rede c
 
 ## Output em segundo monitor
 
-O Output é uma página web somente leitura em `/output`; não é uma tela ligada ao container. No Mint/Cinnamon, Chromium abre a página em app-window sem abas nem barra de endereço, com perfil separado do Firefox usado no controle. Um serviço systemd de usuário posiciona a janela no HDMI configurado e envia F11 via XTest. Um guard verifica a janela a cada dois segundos, restaura tela cheia e o monitor HDMI-2 se ela for minimizada ou movida, e reabre o Output se a janela fechar. O serviço reinicia junto com a sessão do usuário.
+O Output é uma página web somente leitura em `/output`; não é uma tela ligada ao container. No Mint/Cinnamon, Chromium abre a página em app-window sem abas nem barra de endereço, com perfil separado do Firefox usado no controle. Esse perfil dedicado usa o armazenamento básico de senhas do Chromium para não depender do chaveiro da sessão; não salve credenciais nesse perfil. Um serviço systemd de usuário posiciona a janela no HDMI configurado e envia F11 via XTest. Um guard verifica a janela a cada dois segundos, restaura tela cheia e o monitor HDMI-2 se ela for minimizada ou movida, e reabre o Output se a janela fechar. O serviço reinicia junto com a sessão do usuário.
 
 Instale os utilitários do host, se faltarem:
 

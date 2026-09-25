@@ -36,6 +36,8 @@ docker run --rm hello-world
 
 O Compose constrói a imagem, publica a porta 8080, monta `./data` para persistência e aplica `restart: unless-stopped`. O Docker está configurado para iniciar no boot pelo instalador.
 
+Para conferir o estado da implantação neste computador, a proteção dos dados, os comandos de reversão e as pendências do GitHub, consulte [`docs/RESUMO-PARA-CONTINUACAO.md`](docs/RESUMO-PARA-CONTINUACAO.md).
+
 ## Acesso
 
 No PC que executa o servidor:

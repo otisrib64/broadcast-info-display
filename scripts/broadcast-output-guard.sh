@@ -83,6 +83,7 @@ while true; do
 
   "$CHROMIUM" \
     --user-data-dir="$PROFILE" \
+    --password-store=basic \
     --no-first-run \
     --no-default-browser-check \
     --disable-session-crashed-bubble \
