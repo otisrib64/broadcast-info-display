@@ -4,6 +4,7 @@ import { WebSocketServer, type WebSocket } from "ws";
 import { loadState, getState, flushStateSync } from "./state.js";
 import { parseClientMessage, applyMessage, sendState, broadcast, broadcastMessage } from "./protocol.js";
 import { resolveStatic } from "./static.js";
+import { isSameOrigin } from "./origin.js";
 import { startTelemetry, sendTelemetryTo } from "./telemetry/index.js";
 import { handleList, handleUpload, handleDownload, handleDelete } from "./files/api.js";
 
@@ -32,6 +33,15 @@ function broadcastFilesChanged(): void {
 const httpServer = createServer((req, res) => {
   const urlPath = req.url?.split("?")[0] ?? "/";
   const method  = req.method ?? "GET";
+
+  // Mutations must come from our own pages — see origin.ts
+  if (method !== "GET" && method !== "HEAD" && !isSameOrigin(req)) {
+    console.warn({ operation: "http.origin", msg: "cross-origin request rejected", origin: req.headers.origin, method, urlPath });
+    req.resume();
+    res.writeHead(403);
+    res.end("Forbidden");
+    return;
+  }
 
   // ── Mini Cloud API ──────────────────────────────────────────────────────────
   if (urlPath === "/api/files" && method === "GET") {
@@ -87,7 +97,15 @@ const httpServer = createServer((req, res) => {
 // carrying a base64 overlay image (guarded to 3 MB client-side ≈ 4 MB encoded);
 // 5 MB leaves headroom while blocking oversized frames that could OOM the Pi.
 const MAX_WS_PAYLOAD_BYTES = 5 * 1024 * 1024;
-const wss = new WebSocketServer({ server: httpServer, maxPayload: MAX_WS_PAYLOAD_BYTES });
+const wss = new WebSocketServer({
+  server: httpServer,
+  maxPayload: MAX_WS_PAYLOAD_BYTES,
+  verifyClient: ({ req }: { req: import("node:http").IncomingMessage }) => {
+    const ok = isSameOrigin(req);
+    if (!ok) console.warn({ operation: "ws.origin", msg: "cross-origin handshake rejected", origin: req.headers.origin });
+    return ok;
+  },
+});
 export const clients = new Set<WebSocket>();
 
 wss.on("error", (err) => {

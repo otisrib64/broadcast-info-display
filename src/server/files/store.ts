@@ -37,8 +37,12 @@ function totalBytes(files: FileMeta[]): number {
   return files.reduce((sum, f) => sum + f.sizeBytes, 0);
 }
 
+// The extension becomes part of the file id, which guardId() validates on
+// download/delete — anything it would reject (spaces, unicode) must be dropped
+// here, or the file becomes impossible to fetch or delete.
 function safeExt(originalName: string): string {
-  return extname(originalName).toLowerCase();
+  const ext = extname(originalName).toLowerCase();
+  return /^\.[a-z0-9]{1,16}$/.test(ext) ? ext : "";
 }
 
 function guardId(id: string): string {
@@ -97,10 +101,12 @@ export function resolveFilePath(id: string): string {
 
 export function deleteFile(id: string): boolean {
   const abs = guardId(id);
-  if (!existsSync(abs)) return false;
-  unlinkSync(abs);
-  const files = loadIndex().filter((f) => f.id !== id);
-  saveIndex(files);
+  // Only ids present in the index are deletable — otherwise DELETE
+  // /api/files/index.json would wipe the index and orphan every file.
+  const files = loadIndex();
+  if (!files.some((f) => f.id === id)) return false;
+  if (existsSync(abs)) unlinkSync(abs);
+  saveIndex(files.filter((f) => f.id !== id));
   return true;
 }
 
