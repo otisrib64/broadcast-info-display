@@ -1,12 +1,8 @@
 body { overflow: hidden; user-select: none; }
 tbody tr:hover { background: initial; }
-.section-bar { padding: 14px 0 19px; margin-bottom: 12px; }
-tbody tr:has(.status-badge.ok) td:first-child { box-shadow: inset 3px 0 0 var(--ok); }
-tbody tr:has(.status-badge.standby) td:first-child { box-shadow: inset 3px 0 0 var(--standby); }
-tbody tr:has(.status-badge.atencao) td:first-child { box-shadow: inset 3px 0 0 var(--atencao); }
-tbody tr:has(.status-badge.off) td:first-child { box-shadow: inset 3px 0 0 var(--off); }
-tbody tr:has(.status-badge.manutencao) td:first-child { box-shadow: inset 3px 0 0 var(--maintenance); }
-.col-status { width: 196px; }
+tbody tr:nth-child(even):hover { background: rgba(140,151,166,.055); }
+/* Ajustado para as linhas começarem na mesma altura da tabbar do control */
+.section-bar { padding: 14px 0 16px; margin-bottom: 12px; }
+/* Sem a coluna de ação: status + ação do control (220 + 48) → paridade das colunas */
+.col-status { width: 268px; }
 .big-clock-time { cursor: default; }
-.logo-mark { box-shadow: 0 0 22px rgba(34,197,94,.26); }
-.conn-badge { border-color: rgba(34,197,94,.62); color: var(--ok); background: rgba(34,197,94,.08); }

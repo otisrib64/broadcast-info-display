@@ -1,5 +1,5 @@
 // @ts-check
-import { connect, onState, onTelemetry, setConnIndicator } from "/shared/ws-client.js";
+import { connect, onState, onTelemetry } from "/shared/ws-client.js";
 import { startClock, setBigClockElements, applyClockConfig, setHeaderClock } from "/shared/clock.js";
 import { renderCriticalStrip, renderMemoBanner, renderLegend, makeStatusBadge, STATUS_LABEL } from "/shared/render.js";
 
@@ -14,7 +14,6 @@ const clock = /** @type {HTMLElement} */ (document.getElementById("clock"));
 const bigClock = /** @type {HTMLElement} */ (document.getElementById("big-clock"));
 const bigTime = /** @type {HTMLElement} */ (document.getElementById("big-clock-time"));
 const bigDate = /** @type {HTMLElement} */ (document.getElementById("big-clock-date"));
-const conn = /** @type {HTMLElement} */ (document.getElementById("conn-indicator"));
 let rows = [];
 let columns = { frame: "Frame", model: "Modelo", source: "Fonte", description: "Descrição", note: "Nota", status: "Status" };
 
@@ -22,7 +21,6 @@ setHeaderClock(clock);
 setBigClockElements({ clock: bigClock, time: bigTime, date: bigDate, head: null });
 startClock();
 renderLegend(legend);
-setConnIndicator(conn);
 
 function updateHeaders() {
   const fields = ["frame", "model", "source", "description", "note", "status"];

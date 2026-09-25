@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="google" content="notranslate" />
   <meta http-equiv="content-language" content="pt-BR" />
-  <title>Broadcast Info Display — Controle</title>
+  <title>Otis · Broadcast Info Display — Controle</title>
+  <link rel="icon" type="image/svg+xml" href="/shared/otis-icon.svg" />
   <link rel="stylesheet" href="/shared/base.css" />
   <link rel="stylesheet" href="/control/control.css" />
 </head>
@@ -14,34 +15,27 @@
 
   <header>
     <div class="header-left">
-      <div class="logo-mark">BI</div>
+      <svg class="logo-mark" viewBox="0 0 150 150" aria-label="Otis">
+        <circle cx="75" cy="75" r="58" fill="none" stroke="#e9edf2" stroke-width="17"/>
+        <rect x="122" y="66" width="17" height="18" fill="#ff3b30"/>
+      </svg>
       <div class="header-brand">
         <h1>Broadcast Info Display</h1>
-        <span class="subtitle">Painel de controle <span class="mode-pill">INPUT</span></span>
+        <span class="subtitle">Painel de controle</span>
       </div>
     </div>
 
-    <div class="header-center">
-      <div class="mini-card">
-        <span class="mini-label">Conexão</span>
-        <span class="conn-badge offline" id="conn-indicator">● OFFLINE</span>
-      </div>
-      <div class="mini-card">
-        <div>
-          <span class="mini-label">Horário</span>
-          <span class="mini-value" id="clock"></span>
-        </div>
-      </div>
+    <!-- Barra de status única: conexão, horário e telemetria (render.js) -->
+    <div class="header-status">
+      <div class="hcell"><span class="hcell-label">Horário</span><span class="hcell-value" id="clock"></span></div>
+      <div class="critical-strip" id="critical-strip" style="display:none"></div>
     </div>
 
     <div class="header-right">
-      <span id="row-counter-badge" class="row-counter-badge">0 / 20</span>
+      <span id="row-counter-badge" class="row-counter-badge">0 / 12</span>
       <button class="btn-primary" id="btn-add">+ Linha</button>
     </div>
   </header>
-
-  <!-- Info strip -->
-  <div class="critical-strip" id="critical-strip" style="display:none"></div>
 
   <!-- Memo banner -->
   <div class="memo-banner hidden" id="memo-banner"></div>
@@ -128,7 +122,7 @@
     <div class="panel">
       <div class="panel-head">
         <span class="panel-title">Mini Cloud — compartilhamento local</span>
-        <span class="panel-hint">acesso via LAN · arquivos armazenados no Pi</span>
+        <span class="panel-hint">acesso via LAN · arquivos armazenados no servidor</span>
       </div>
       <div class="panel-body">
         <div class="files-grid">
@@ -249,8 +243,18 @@
   </datalist>
 
   <footer>
-    <span class="footer-note">Broadcast Info Display v0.3.1</span>
-    <span class="footer-note">Made by otisrib64 Technology</span>
+    <span class="footer-note">Broadcast Info Display · v0.3.1</span>
+    <!-- Logo completo Otis: anel + wordmark + subtítulo (manual da marca) -->
+    <span class="footer-brand" aria-label="Otis Broadcast Engineer">
+      <svg class="footer-brand-ring" viewBox="0 0 150 150" aria-hidden="true">
+        <circle cx="75" cy="75" r="58" fill="none" stroke="#e9edf2" stroke-width="17"/>
+        <rect x="122" y="66" width="17" height="18" fill="#ff3b30"/>
+      </svg>
+      <span class="footer-brand-text">
+        <span class="footer-brand-name">OTIS</span>
+        <span class="footer-brand-sub">Broadcast Engineer</span>
+      </span>
+    </span>
   </footer>
 
 </div>

@@ -68,7 +68,10 @@ export const ImageConfigSchema = z.object({
 });
 export type ImageConfig = z.infer<typeof ImageConfigSchema>;
 
-export const MAX_ROWS = 20;
+// 12 linhas em fonte grande cabem num output 1080p com folga, mesmo com a nota
+// visível (linha ≈ 37px — ver --cell-h no base.css). Subir este valor exige reduzir
+// a densidade, senão as últimas linhas saem cortadas no output.
+export const MAX_ROWS = 12;
 
 export const StateSchema = z.object({
   rows: z.array(RowSchema).max(MAX_ROWS),

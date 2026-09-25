@@ -1,6 +1,6 @@
-import { readFileSync, writeFileSync, renameSync, mkdirSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, renameSync, mkdirSync, statSync, copyFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { StateSchema, type State } from "../shared/types.js";
+import { StateSchema, MAX_ROWS, type State } from "../shared/types.js";
 
 const STATE_PATH = join(process.cwd(), "data", "state.json");
 const TMP_PATH = STATE_PATH + ".tmp";
@@ -21,7 +21,7 @@ export function loadState(): State {
       return EMPTY_STATE;
     }
     const raw = readFileSync(STATE_PATH, "utf8");
-    const parsed = StateSchema.safeParse(JSON.parse(raw));
+    const parsed = StateSchema.safeParse(capRows(JSON.parse(raw)));
     if (!parsed.success) {
       console.warn({ operation: "loadState", msg: "invalid state file, using empty", issues: parsed.error.issues });
       return EMPTY_STATE;
@@ -31,6 +31,21 @@ export function loadState(): State {
   } catch {
     return EMPTY_STATE;
   }
+}
+
+/**
+ * A state saved under an older, higher row cap would fail validation and boot
+ * empty. Keep the first MAX_ROWS rows instead, after backing up the original
+ * file so the dropped rows can be recovered by hand.
+ */
+function capRows(data: unknown): unknown {
+  if (typeof data !== "object" || data === null) return data;
+  const rows = (data as { rows?: unknown }).rows;
+  if (!Array.isArray(rows) || rows.length <= MAX_ROWS) return data;
+  const backup = `${STATE_PATH}.bak-${Date.now()}`;
+  copyFileSync(STATE_PATH, backup);
+  console.warn({ operation: "loadState", msg: "rows over limit, truncated", kept: MAX_ROWS, dropped: rows.length - MAX_ROWS, backup });
+  return { ...data, rows: rows.slice(0, MAX_ROWS) };
 }
 
 export function getState(): State {

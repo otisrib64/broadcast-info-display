@@ -29,17 +29,17 @@ describe("RowSchema (table-driven)", () => {
 });
 
 describe("StateSchema", () => {
-  it("accepts rows up to 20", async () => {
-    const { StateSchema, RowSchema } = await import("../shared/types.js");
+  it("accepts rows up to MAX_ROWS", async () => {
+    const { StateSchema, RowSchema, MAX_ROWS } = await import("../shared/types.js");
     const row = RowSchema.parse({ id: "x", frame: "", model: "", source: "", description: "", note: "", status: "ok" });
-    const rows = Array.from({ length: 20 }, (_, i) => ({ ...row, id: String(i) }));
+    const rows = Array.from({ length: MAX_ROWS }, (_, i) => ({ ...row, id: String(i) }));
     expect(StateSchema.safeParse({ rows }).success).toBe(true);
   });
 
-  it("rejects more than 20 rows", async () => {
-    const { StateSchema, RowSchema } = await import("../shared/types.js");
+  it("rejects more than MAX_ROWS rows", async () => {
+    const { StateSchema, RowSchema, MAX_ROWS } = await import("../shared/types.js");
     const row = RowSchema.parse({ id: "x", frame: "", model: "", source: "", description: "", note: "", status: "ok" });
-    const rows = Array.from({ length: 21 }, (_, i) => ({ ...row, id: String(i) }));
+    const rows = Array.from({ length: MAX_ROWS + 1 }, (_, i) => ({ ...row, id: String(i) }));
     expect(StateSchema.safeParse({ rows }).success).toBe(false);
   });
 

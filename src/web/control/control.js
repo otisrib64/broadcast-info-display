@@ -1,5 +1,5 @@
 // @ts-check
-import { connect, onState, onTelemetry, onFilesChanged, send, setConnIndicator } from "/shared/ws-client.js";
+import { connect, onState, onTelemetry, onFilesChanged, send } from "/shared/ws-client.js";
 import {
   startClock, setBigClockElements, applyClockConfig,
   setHeaderClock, enableClockDrag, setOnClockDragEnd,
@@ -7,10 +7,12 @@ import {
 } from "/shared/clock.js";
 import { renderCriticalStrip, renderMemoBanner, renderLegend, STATUS_LABEL } from "/shared/render.js";
 
+// Mirrors MAX_ROWS in src/shared/types.ts (the server enforces it). Keep in sync.
+const MAX_ROWS = 12;
+
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const tbody           = /** @type {HTMLTableSectionElement} */ (document.getElementById("tbody"));
 const btnAdd          = /** @type {HTMLButtonElement} */       (document.getElementById("btn-add"));
-const connIndicator   = /** @type {HTMLElement} */             (document.getElementById("conn-indicator"));
 const clockEl         = /** @type {HTMLElement} */             (document.getElementById("clock"));
 const memoText        = /** @type {HTMLTextAreaElement} */     (document.getElementById("memo-text"));
 const memoBanner      = /** @type {HTMLElement} */             (document.getElementById("memo-banner"));
@@ -69,7 +71,6 @@ setBigClockElements({ clock: bigClock, time: bigClockTime, date: bigClockDate, h
 setSwDisplayEl(swDisplay);
 startClock();
 renderLegend(legendEl);
-setConnIndicator(connIndicator);
 
 enableClockDrag();
 setOnClockDragEnd((pos) => {
@@ -185,8 +186,8 @@ function patchTable() {
 
 function updateRowCounter() {
   const n = rows.length;
-  rowCounterBadge.textContent = `${n} / 20`;
-  btnAdd.disabled = n >= 20;
+  rowCounterBadge.textContent = `${n} / ${MAX_ROWS}`;
+  btnAdd.disabled = n >= MAX_ROWS;
 }
 
 function syncColumnInputs() {
@@ -288,7 +289,7 @@ tbody.addEventListener("click", (ev) => {
 });
 
 btnAdd.addEventListener("click", () => {
-  if (rows.length >= 20) return;
+  if (rows.length >= MAX_ROWS) return;
   const nextFrame = `Frame ${rows.length + 1}`;
   rows = [...rows, { id: generateId(), frame: nextFrame, model: "", source: "", description: "", note: "", status: "standby" }];
   renderTable();
