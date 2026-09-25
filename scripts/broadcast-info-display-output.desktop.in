@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
-Name=Broadcast Info Display Output
-Comment=Open the output fullscreen on the HDMI-2 monitor
+Name=Broadcast Output — Chromium dedicado
+Comment=Output em tela cheia no HDMI-2 com restauração automática
 Exec=@HOME@/.local/bin/start-broadcast-output.sh
 Terminal=false
 X-GNOME-Autostart-enabled=true

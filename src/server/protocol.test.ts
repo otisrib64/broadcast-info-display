@@ -32,3 +32,19 @@ describe("reorderRows (table-driven)", () => {
     expect(new Set(result.map((r) => r.id)).size).toBe(rows.length);
   });
 });
+
+describe("whole-state update safety", () => {
+  it("allows edits that preserve or add rows", async () => {
+    const { canApplyWholeState } = await import("./protocol.js");
+    const current = { rows: [makeRow("a"), makeRow("b")] };
+    expect(canApplyWholeState(current, { rows: [makeRow("a"), makeRow("b")] })).toBe(true);
+    expect(canApplyWholeState(current, { rows: [makeRow("a"), makeRow("b"), makeRow("c")] })).toBe(true);
+  });
+
+  it("rejects accidental row loss; explicit removeRow remains the deletion path", async () => {
+    const { canApplyWholeState } = await import("./protocol.js");
+    const current = { rows: [makeRow("a"), makeRow("b")] };
+    expect(canApplyWholeState(current, { rows: [] })).toBe(false);
+    expect(canApplyWholeState(current, { rows: [makeRow("a")] })).toBe(false);
+  });
+});

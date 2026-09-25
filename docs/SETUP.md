@@ -7,7 +7,7 @@ Este guia cobre o servidor Docker, o acesso por LAN e a abertura opcional da tel
 - Linux Mint baseado em Ubuntu ou Ubuntu x86-64.
 - Rede local entre o servidor e os computadores clientes.
 - Acesso administrativo para instalar o Docker.
-- Para autostart do Output: Cinnamon/X11, Firefox, segundo monitor ativo e ferramentas X11.
+- Para autostart do Output: Cinnamon/X11, Chromium, segundo monitor ativo e ferramentas X11.
 
 LMDE usa base Debian; consulte a documentação de instalação Docker apropriada para Debian em vez de assumir codinome Ubuntu.
 
@@ -28,6 +28,10 @@ docker run --rm hello-world
 docker compose version
 systemctl is-enabled docker
 ```
+
+## Densidade e quantidade de linhas
+
+Controle e Output usam uma única densidade de tabela, dimensionada para até 20 linhas em uma tela 1080p, com fonte maior e células de 42 px. O Output preserva o logo completo no rodapé; a faixa de contagem acima da tabela foi removida para abrir espaço vertical.
 
 Para reverter o funcionamento do projeto sem remover dados:
 
@@ -80,12 +84,12 @@ O Compose publica em todas as interfaces (`0.0.0.0:8080` e IPv6). Use uma rede c
 
 ## Output em segundo monitor
 
-O Output é uma página web somente leitura em `/output`; não é uma tela ligada ao container. No Mint/Cinnamon, o script do host abre um Firefox dedicado, espera o servidor ficar disponível, posiciona a janela no HDMI configurado e envia F11 via XTest. O perfil separado mantém configurações e janela do Output independentes do Firefox usado para o controle.
+O Output é uma página web somente leitura em `/output`; não é uma tela ligada ao container. No Mint/Cinnamon, Chromium abre a página em app-window sem abas nem barra de endereço, com perfil separado do Firefox usado no controle. Um serviço systemd de usuário posiciona a janela no HDMI configurado e envia F11 via XTest. Um guard verifica a janela a cada dois segundos, restaura tela cheia e o monitor HDMI-2 se ela for minimizada ou movida, e reabre o Output se a janela fechar. O serviço reinicia junto com a sessão do usuário.
 
 Instale os utilitários do host, se faltarem:
 
 ```bash
-sudo apt-get install -y x11-xserver-utils wmctrl libxtst6
+sudo apt-get install -y chromium x11-xserver-utils wmctrl libxtst6
 ```
 
 Ative o autostart do usuário:
@@ -95,13 +99,9 @@ Ative o autostart do usuário:
 ~/.local/bin/start-broadcast-output.sh
 ```
 
-Por padrão, o monitor alvo é `HDMI-2`. Para escolher outro conector nesta máquina, execute com o nome mostrado por `xrandr --query`:
+Por padrão, o monitor alvo é `HDMI-2`. Para escolher outro conector, defina `BID_OUTPUT_MONITOR` no ambiente da sessão gráfica antes de ativar o serviço. Use um nome mostrado por `xrandr --query`.
 
-```bash
-BID_OUTPUT_MONITOR=HDMI-1 ~/.local/bin/start-broadcast-output.sh
-```
-
-O valor pode ser colocado na variável `BID_OUTPUT_MONITOR` dentro do script instalado se o autostart precisar de outro conector.
+O atalho `~/.local/bin/start-broadcast-output.sh` inicia o serviço existente sem criar outra janela ou perfil.
 
 Desative somente essa parte:
 
@@ -109,11 +109,27 @@ Desative somente essa parte:
 ./scripts/configurar-output-autostart.sh disable
 ```
 
-Esse comando para `broadcast-info-display-browser.service` do usuário e remove os arquivos de autostart e launcher instalados pelo script. Não para Docker nem apaga `data/`.
+Esse comando desativa `broadcast-info-display-output.service` e remove o guard, os arquivos de autostart e o launcher. Não apaga perfis do navegador, não para Docker e não apaga `data/`.
 
 ## Persistência, atualização e backup
 
-`data/state.json` guarda a tabela, colunas, memo, overlay e relógio. `data/files/` guarda os arquivos da Mini Cloud. O bind mount em `./data` mantém tudo quando o container ou a imagem são reconstruídos. Todo o diretório `data/` é excluído do Git e do build Docker.
+`data/state.json` guarda a tabela, colunas, memo, overlay e relógio. `data/files/` guarda os arquivos da Mini Cloud. O bind mount em `./data` mantém tudo quando o container ou a imagem são reconstruídos. Todo o diretório `data/` é excluído do Git e do build Docker; a planilha operacional não está no GitHub.
+
+O servidor cria snapshots locais em `data/history/` antes de qualquer redução no número de linhas e checkpoints a cada cinco minutos enquanto há edições. Mantém até 288 arquivos e limita o histórico a 100 MB, removendo os mais antigos quando necessário.
+
+Liste as cópias disponíveis:
+
+```bash
+./scripts/restaurar-state-backup.sh --list
+```
+
+Para restaurar, informe o nome de uma cópia mostrado pela lista. O script para o container, guarda o estado atual como `state-before-restore-...json`, restaura a cópia selecionada e inicia o container novamente:
+
+```bash
+./scripts/restaurar-state-backup.sh state-2026-09-25T12-00-00-000Z.json
+```
+
+Antes de uma atualização importante, copie `data/` para outro disco ou pendrive também. O histórico no próprio computador protege contra sobrescritas acidentais, mas não substitui uma cópia externa.
 
 Atualize e recrie com:
 
@@ -168,7 +184,7 @@ sudo chown -R 1000:1000 data
 
 ### Output não abre no segundo monitor
 
-Confirme que o servidor responde em `/output`, o monitor está conectado e o nome do conector coincide com `xrandr --query`. Verifique a execução do Firefox em `journalctl --user -u broadcast-info-display-browser.service`. A unidade de usuário e o autostart gráfico só existem depois do login Cinnamon.
+Confirme que o servidor responde em `/output`, Chromium está instalado, o monitor está conectado e o nome do conector coincide com `xrandr --query`. Veja o serviço com `systemctl --user status broadcast-info-display-output.service` e os logs com `journalctl --user -u broadcast-info-display-output.service -f`. A unidade de usuário funciona depois do login Cinnamon.
 
 ### Telemetria sem cidade ou clima
 

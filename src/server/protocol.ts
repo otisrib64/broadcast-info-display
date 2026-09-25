@@ -19,6 +19,12 @@ export function reorderRows(rows: Row[], ids: string[]): Row[] {
   return [...ordered, ...missing];
 }
 
+/** Whole-state UI updates may edit existing rows, but row removal has its own
+ * explicit message. Reject a smaller snapshot from a stale/unhydrated client. */
+export function canApplyWholeState(current: State, incoming: State): boolean {
+  return incoming.rows.length >= current.rows.length;
+}
+
 export function parseClientMessage(raw: string): ClientMessage | null {
   try {
     const parsed = ClientMessageSchema.safeParse(JSON.parse(raw));
@@ -34,6 +40,15 @@ export function applyMessage(msg: ClientMessage): State {
 
   switch (msg.type) {
     case "setState": {
+      if (!canApplyWholeState(current, msg.state)) {
+        console.warn({
+          operation: "setState",
+          msg: "row_count_decrease_rejected",
+          currentRows: current.rows.length,
+          incomingRows: msg.state.rows.length,
+        });
+        return current;
+      }
       saveState(msg.state);
       return msg.state;
     }

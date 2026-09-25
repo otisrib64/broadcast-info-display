@@ -5,7 +5,6 @@ import { renderCriticalStrip, renderMemoBanner, renderLegend, makeStatusBadge, S
 
 const tbody = /** @type {HTMLTableSectionElement} */ (document.getElementById("tbody"));
 const thead = /** @type {HTMLTableRowElement} */ (document.getElementById("thead-row"));
-const rowCounter = /** @type {HTMLElement} */ (document.getElementById("row-counter"));
 const memo = /** @type {HTMLElement} */ (document.getElementById("memo-banner"));
 const strip = /** @type {HTMLElement} */ (document.getElementById("critical-strip"));
 const legend = /** @type {HTMLElement} */ (document.getElementById("legend"));
@@ -59,7 +58,6 @@ onState((state) => {
   if (state.columns) columns = state.columns;
   updateHeaders();
   renderTable();
-  rowCounter.textContent = `${rows.length} linha${rows.length === 1 ? "" : "s"}`;
   renderMemoBanner(memo, state.memo ?? "");
   renderImage(state.image);
   if (state.clock) applyClockConfig(state.clock);

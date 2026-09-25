@@ -4,6 +4,7 @@
   font-style: normal; font-weight: 600; font-display: swap;
   src: url("/shared/fonts/barlow-condensed-latin-600-normal.woff2") format("woff2");
 }
+
 @font-face {
   font-family: "Barlow Condensed";
   font-style: normal; font-weight: 700; font-display: swap;
@@ -87,10 +88,10 @@
      Paridade de geometria: imagem e relógio são posicionados por pixel no
      control e reproduzidos no output. Mude só aqui, nunca por página. */
   --row-pad: 1px;
-  --cell-h: 34px;          /* altura da caixa de cada célula → linha ≈ 37px */
-  --cell-font: 23px;       /* texto das células (Barlow Condensed) */
-  --frame-font: 25px;      /* coluna FRAME: identificador principal, estilo UMD */
-  --status-font: 18px;
+  --cell-h: 42px;          /* 20 linhas grandes no Output 1080p */
+  --cell-font: 28px;
+  --frame-font: 31px;
+  --status-font: 20px;
 }
 
 /* ── Tela: control = PVW (preview/edição) · output = PGM (no ar) ─────────────── */
@@ -546,6 +547,10 @@ footer {
   font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase;
   color: var(--pgm); margin-top: 3px;
 }
+
+/* Give the 20-row Output the vertical space normally used by the footer. */
+body.theme-output .table-section { padding-top: 10px; }
+body.theme-output .legend { padding-top: 8px; padding-bottom: 8px; }
 
 /* ── Textarea ─────────────────────────────────────────────────────────────────── */
 textarea {

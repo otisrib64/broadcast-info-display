@@ -20,7 +20,7 @@ afterAll(() => {
 
 describe("loadState — state saved under an older, higher row cap", () => {
   it("keeps the first MAX_ROWS rows and backs up the original file", async () => {
-    const rows = Array.from({ length: 20 }, (_, i) => ({
+    const rows = Array.from({ length: MAX_ROWS + 8 }, (_, i) => ({
       id: String(i), frame: `F${i}`, model: "", source: "", description: "", note: "", status: "ok",
     }));
     const original = JSON.stringify({ rows, memo: "keep me" });

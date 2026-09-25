@@ -1,0 +1,17 @@
+[Unit]
+Description=Broadcast Info Display — Chromium Output guard
+After=graphical-session.target
+Wants=graphical-session.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=@HOME@/.Xauthority
+Environment=MOZ_ENABLE_WAYLAND=0
+ExecStart=@HOME@/.local/bin/broadcast-output-guard.sh
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target

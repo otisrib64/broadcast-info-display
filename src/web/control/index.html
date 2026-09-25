@@ -6,11 +6,15 @@
   <meta name="google" content="notranslate" />
   <meta http-equiv="content-language" content="pt-BR" />
   <title>Otis · Broadcast Info Display — Controle</title>
-  <link rel="icon" type="image/svg+xml" href="/shared/otis-icon.svg" />
+  <link rel="icon" type="image/svg+xml" href="/shared/otis-icon.svg?v=3" />
   <link rel="stylesheet" href="/shared/base.css" />
   <link rel="stylesheet" href="/control/control.css" />
 </head>
 <body class="theme-input">
+<div id="state-loading" class="state-loading" role="status" aria-live="polite">
+  <strong>Carregando dados salvos…</strong>
+  <span>O painel ficará disponível assim que receber a configuração local.</span>
+</div>
 <div class="shell">
 
   <header>
@@ -32,7 +36,6 @@
     </div>
 
     <div class="header-right">
-      <span id="row-counter-badge" class="row-counter-badge">0 / 12</span>
       <button class="btn-primary" id="btn-add">+ Linha</button>
     </div>
   </header>

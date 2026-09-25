@@ -7,8 +7,8 @@ import {
 } from "/shared/clock.js";
 import { renderCriticalStrip, renderMemoBanner, renderLegend, STATUS_LABEL } from "/shared/render.js";
 
-// Mirrors MAX_ROWS in src/shared/types.ts (the server enforces it). Keep in sync.
-const MAX_ROWS = 12;
+// Mirrors MAX_ROWS in src/shared/types.ts. Keep in sync.
+const MAX_ROWS = 20;
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const tbody           = /** @type {HTMLTableSectionElement} */ (document.getElementById("tbody"));
@@ -17,7 +17,6 @@ const clockEl         = /** @type {HTMLElement} */             (document.getElem
 const memoText        = /** @type {HTMLTextAreaElement} */     (document.getElementById("memo-text"));
 const memoBanner      = /** @type {HTMLElement} */             (document.getElementById("memo-banner"));
 const criticalStrip   = /** @type {HTMLElement} */             (document.getElementById("critical-strip"));
-const rowCounterBadge = /** @type {HTMLElement} */             (document.getElementById("row-counter-badge"));
 const legendEl        = /** @type {HTMLElement} */             (document.getElementById("legend"));
 const overlayImg      = /** @type {HTMLImageElement} */        (document.getElementById("overlay-img"));
 const imgFile         = /** @type {HTMLInputElement} */        (document.getElementById("img-file"));
@@ -59,6 +58,9 @@ let memo = "";
 let columns = { frame: "Frame", model: "Modelo", source: "Fonte", description: "Descrição", note: "Nota", status: "Status" };
 /** @type {{ visible: boolean, scale: number, x: number, y: number, mode: "clock"|"stopwatch", stopwatch?: { running: boolean, startedAtMs: number|null, accumulatedMs: number } }} */
 let clockCfg = { visible: false, scale: 1, x: 0, y: 92, mode: "clock" };
+// Never accept UI edits into the server until this browser has received the
+// persisted server snapshot. This avoids an empty startup state erasing data.
+let serverStateLoaded = false;
 
 const STATUSES = ["ok", "standby", "atencao", "off", "manutencao"];
 const TEXT_FIELDS = /** @type {const} */ (["frame", "model", "source", "description", "note"]);
@@ -184,10 +186,9 @@ function patchTable() {
   }
 }
 
-function updateRowCounter() {
-  const n = rows.length;
-  rowCounterBadge.textContent = `${n} / ${MAX_ROWS}`;
-  btnAdd.disabled = n >= MAX_ROWS;
+function updateAddButton() {
+  btnAdd.disabled = rows.length >= MAX_ROWS;
+  btnAdd.title = `${rows.length} de ${MAX_ROWS} linhas`;
 }
 
 function syncColumnInputs() {
@@ -202,14 +203,17 @@ function syncColumnInputs() {
 // ── Send helpers ──────────────────────────────────────────────────────────────
 
 function sendState() {
+  if (!serverStateLoaded) return;
   send({ type: "setState", state: { rows, image, memo, columns, clock: clockCfg } });
 }
 
 function sendClock() {
+  if (!serverStateLoaded) return;
   send({ type: "setClock", clock: clockCfg });
 }
 
 function sendColumns() {
+  if (!serverStateLoaded) return;
   send({ type: "setColumns", columns });
 }
 
@@ -232,6 +236,8 @@ function renderImage() {
 // ── WS state handler ───────────────────────────────────────────────────────────
 
 onState((state) => {
+  serverStateLoaded = true;
+  document.getElementById("state-loading")?.classList.add("hidden");
   const structural = !sameRowStructure(state.rows);
   rows  = state.rows;
   image = state.image;
@@ -247,7 +253,7 @@ onState((state) => {
   }
 
   if (structural) renderTable(); else patchTable();
-  updateRowCounter();
+  updateAddButton();
   syncColumnInputs();
   renderMemoBanner(memoBanner, memo);
   renderImage();
@@ -284,8 +290,10 @@ tbody.addEventListener("click", (ev) => {
   if (t?.dataset.action !== "remove") return;
   rows = rows.filter((r) => r.id !== t.dataset.id);
   renderTable();
-  updateRowCounter();
-  sendState();
+  updateAddButton();
+  // Deletion uses its explicit protocol message. setState intentionally rejects
+  // smaller snapshots so a stale browser cannot erase the saved table.
+  send({ type: "removeRow", id: t.dataset.id });
 });
 
 btnAdd.addEventListener("click", () => {
@@ -293,7 +301,7 @@ btnAdd.addEventListener("click", () => {
   const nextFrame = `Frame ${rows.length + 1}`;
   rows = [...rows, { id: generateId(), frame: nextFrame, model: "", source: "", description: "", note: "", status: "standby" }];
   renderTable();
-  updateRowCounter();
+  updateAddButton();
   sendState();
 });
 

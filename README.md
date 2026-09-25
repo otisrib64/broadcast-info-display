@@ -8,6 +8,7 @@ Esta branch, `feat/docker-headless-server`, roda o servidor em Docker num PC Lin
 
 - **Controle:** `/control`, edição da tabela de câmeras, colunas, status, imagem overlay, memo, relógio e arquivos.
 - **Output:** `/output`, tabela somente leitura, status, telemetria, memo, relógio e overlay sincronizados por WebSocket.
+- **Tabela:** densidade única para até 20 linhas, sincronizada entre Controle e Output.
 - **Mini Cloud:** upload, download e exclusão via HTTP; até 15 arquivos, 75 MB por arquivo e 250 MB no total.
 - **Telemetria:** localização por IP, clima e previsão pelo Open-Meteo e estado de conectividade.
 
@@ -48,9 +49,10 @@ O cliente WebSocket usa automaticamente o mesmo host e a mesma porta da página.
 
 ## Segundo monitor e autoinicialização gráfica
 
-No Linux Mint com Cinnamon/X11 e Firefox, o launcher abre `/output` num perfil separado, posiciona a janela no monitor configurado (padrão `HDMI-2`) e envia F11. O desktop control continua no perfil normal do Firefox.
+No Linux Mint com Cinnamon/X11, o Output usa Chromium num perfil e processo próprios; o painel pode continuar no Firefox. O serviço posiciona `/output` no monitor configurado (padrão `HDMI-2`), envia F11 e restaura a tela cheia se a janela for minimizada ou sair do monitor. Se o navegador ou a janela fechar, o guard abre novamente; o serviço também sobe no login.
 
 ```bash
+sudo apt-get install -y chromium x11-xserver-utils wmctrl libxtst6
 ./scripts/configurar-output-autostart.sh enable
 ```
 
@@ -60,7 +62,7 @@ Para testar sem reiniciar, execute:
 ~/.local/bin/start-broadcast-output.sh
 ```
 
-O launcher depende de Firefox, `curl`, `xrandr`, `wmctrl`, `xprop`, Python 3, `systemd-run --user`, X11 e XTest (`libX11.so.6` e `libXtst.so.6`). Em instalações Mint onde faltem ferramentas, instale `x11-xserver-utils wmctrl libxtst6`.
+O launcher e o serviço dependem de Chromium, `curl`, `xrandr`, `wmctrl`, `xprop`, Python 3, systemd de usuário, X11 e XTest (`libX11.so.6` e `libXtst.so.6`).
 
 Reverter somente o autostart gráfico:
 
@@ -68,7 +70,7 @@ Reverter somente o autostart gráfico:
 ./scripts/configurar-output-autostart.sh disable
 ```
 
-Isso para o navegador dedicado e remove o launcher e o atalho de autostart. O servidor Docker e os dados continuam intactos.
+Isso para o navegador dedicado e remove o serviço, o guard, o launcher e o autostart. Os perfis dos navegadores, o servidor Docker e os dados continuam intactos.
 
 ## Operação e reversão
 
@@ -88,7 +90,7 @@ docker compose down --rmi local   # também remover a imagem local
 - `data/state.json`: tabela, colunas, memo, imagem e relógio.
 - `data/files/`: conteúdo e índice da Mini Cloud.
 
-O bind mount mantém esses dados fora da imagem, e `/data/` é ignorado pelo Git e pelo contexto Docker. Para cópia de segurança, pare ou mantenha o serviço ativo e copie o diretório `data/` para armazenamento seguro. Remover esse diretório apaga o estado e arquivos do usuário.
+O bind mount mantém esses dados fora da imagem, e `/data/` é ignorado pelo Git e pelo contexto Docker. O servidor cria snapshots em `data/history/` antes de reduzir a quantidade de linhas e checkpoints periódicos durante edições. Para ver e restaurar versões, use `./scripts/restaurar-state-backup.sh --list` e `./scripts/restaurar-state-backup.sh <nome-do-arquivo>`. O script guarda o estado atual antes de restaurar. Para proteção contra falha do disco, copie `data/` também para um pendrive.
 
 ## Configuração
 
