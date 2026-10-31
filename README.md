@@ -7,6 +7,10 @@
 > (densidade automática, tally bars por status, fontes self-hosted). Validada no
 > Raspberry Pi 4 e mergeada na `main` em 2026-07-02.
 
+> **Variante Docker:** para rodar em qualquer PC Linux (sem Raspberry Pi), use o repositório
+> [broadcast-info-display-docker](https://github.com/otisrib64/broadcast-info-display-docker),
+> separado deste em 2026-10-31.
+
 Appliance de display de informações para broadcast ao vivo. Roda num **Raspberry Pi** com saída HDMI para monitor ou matriz de vídeo. Operadores editam pela rede local; a tela atualiza em tempo real.
 
 ```
